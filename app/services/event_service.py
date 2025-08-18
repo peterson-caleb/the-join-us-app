@@ -94,15 +94,17 @@ class EventService:
         for invitee in invitees:
             try:
                 rsvp_token = secrets.token_urlsafe(8)
-                invitee_name = invitee.get('name', 'Guest')
+
+                # This is the corrected call
                 message_sid, status, error_message = self.sms_service.send_invitation(
                     phone_number=invitee['phone'],
                     event_name=event.name,
                     event_date=event.date,
-                    event_code=event.event_code,
+                    rsvp_token=rsvp_token,
                     event_id=event._id,
-                    contact_id=ObjectId(invitee['contact_id'])
+                    contact_id=invitee['contact_id'] # Correctly pass the contact_id
                 )
+
                 invitee['status'] = status if status == "SENT" else "ERROR"
                 invitee['invited_at'] = now
                 invitee['rsvp_token'] = rsvp_token
