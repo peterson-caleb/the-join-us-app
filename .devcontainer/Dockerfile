@@ -1,6 +1,9 @@
+# In .devcontainer/Dockerfile
 FROM mcr.microsoft.com/devcontainers/python:3.12
 
-# Copy requirements and install packages
 WORKDIR /workspaces/rsvp-priority
-COPY ../requirements.txt .
+
+# Change this line
+COPY requirements.txt .
+
 RUN pip install --user -r requirements.txt

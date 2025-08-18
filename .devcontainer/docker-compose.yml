@@ -1,13 +1,12 @@
 services:
   app:
     build:
-      # Use the Dockerfile in the .devcontainer directory
-      context: .
-      dockerfile: Dockerfile
+      # 1. Change context to the parent folder (project root)
+      context: ..
+      # 2. Specify the Dockerfile location relative to the new context
+      dockerfile: .devcontainer/Dockerfile
 
+    # ... the rest of the file is unchanged ...
     volumes:
-      # Mount your project folder into the container
       - ..:/workspaces/rsvp-priority:cached
-
-    # Keep the container running for you to connect to
     command: sleep infinity
