@@ -11,6 +11,7 @@ class Config:
     TWILIO_SID = os.getenv('TWILIO_SID')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE = os.getenv('TWILIO_PHONE')
+    BASE_URL = os.getenv('BASE_URL', 'http://localhost:5000')
     
     # RSVP System Configuration
     DEFAULT_BATCH_SIZE = int(os.getenv('DEFAULT_BATCH_SIZE', '10'))

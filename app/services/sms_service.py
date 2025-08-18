@@ -12,6 +12,7 @@ class SMSService:
         self.client = Client(twilio_sid, twilio_auth_token)
         self.twilio_phone = twilio_phone
         self.message_log_service = message_log_service
+        self.base_url = base_url
         
         # Rate limiting settings
         self.max_messages_per_day = 100  # Twilio's default limit
@@ -81,14 +82,15 @@ class SMSService:
             self.daily_message_count += 1
             self.recent_messages.append(now)
 
-    def send_invitation(self, phone_number, event_name, event_date, event_code, event_id=None, contact_id=None):
+    def send_invitation(self, phone_number, event_name, event_date, rsvp_token, event_id=None, contact_id=None): # Changed event_code to rsvp_token
         """
-        Send an invitation SMS with rate limiting and error handling
-        Returns: (message_sid, status, error_message)
+        Send an invitation SMS with a unique RSVP link.
         """
+        # Updated message body to use the RSVP link
+        rsvp_url = f"{self.base_url}/rsvp/{rsvp_token}"
         body = (f"You're invited to {event_name} on {event_date}! "
-                f"Reply '{event_code} YES' to accept or '{event_code} NO' to decline.")
-        
+                f"Please RSVP here: {rsvp_url}")
+
         log_data = {
             'contact_id': contact_id, 'event_id': event_id, 'phone_number': phone_number,
             'message_type': 'invitation', 'direction': 'outgoing', 'body': body

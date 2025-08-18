@@ -49,7 +49,8 @@ def create_app(config_class=Config):
         app.config['TWILIO_SID'],
         app.config['TWILIO_AUTH_TOKEN'],
         app.config['TWILIO_PHONE'],
-        message_log_service=message_log_service
+        message_log_service=message_log_service,
+        base_url=app.config['BASE_URL']
     )
     
     # Initialize other services
