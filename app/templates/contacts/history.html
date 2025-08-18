@@ -1,0 +1,63 @@
+# Create new file: app/templates/contacts/history.html
+{% extends "base.html" %}
+
+{% block title %}Message History for {{ contact.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Message History</h1>
+                    <p class="text-muted mb-0">For {{ contact.name }} ({{ contact.phone }})</p>
+                </div>
+                <a href="{{ url_for('contacts.manage_master_list') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Contacts</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if logs %}
+            <ul class="list-group">
+                {% for log in logs %}
+                <li class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">
+                            {% if log.direction == 'outgoing' %}
+                                <i class="bi bi-arrow-up-right-circle-fill text-primary"></i> Outgoing
+                            {% else %}
+                                <i class="bi bi-arrow-down-left-circle-fill text-success"></i> Incoming
+                            {% endif %}
+                            - <span class="text-capitalize">{{ log.message_type.replace('_', ' ') }}</span>
+                        </h5>
+                        <small>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC</small>
+                    </div>
+                    <p class="mb-1"><code>{{ log.body }}</code></p>
+                    <small>
+                        <strong>Status:</strong> 
+                        <span class="badge 
+                            {% if log.status == 'SENT' or log.status == 'RECEIVED' %}bg-success
+                            {% elif log.status == 'ERROR' %}bg-danger
+                            {% else %}bg-secondary
+                            {% endif %}">
+                            {{ log.status }}
+                        </span>
+                        {% if log.error_message %}
+                            <br><strong>Error:</strong> {{ log.error_message }}
+                        {% endif %}
+                        {% if log.message_sid %}
+                            <br><strong>SID:</strong> {{ log.message_sid }}
+                        {% endif %}
+                    </small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="alert alert-info">No message history found for this contact.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

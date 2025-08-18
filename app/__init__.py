@@ -1,3 +1,4 @@
+# Modified file: app/__init__.py
 from flask import Flask, render_template
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, login_required
@@ -13,6 +14,7 @@ sms_service = None
 user_service = None
 registration_code_service = None
 task_scheduler = None
+message_log_service = None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -30,22 +32,27 @@ def create_app(config_class=Config):
     login_manager.login_message_category = 'info'
 
     # Initialize services
-    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler
+    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service
     from .services.event_service import EventService
     from .services.contact_service import ContactService
     from .services.sms_service import SMSService
     from .services.user_service import UserService
     from .services.registration_code_service import RegistrationCodeService
+    from .services.message_log_service import MessageLogService
     from .scheduler import TaskScheduler
     
-    # Initialize SMS service first since EventService needs it
+    # Initialize services that don't depend on others
+    message_log_service = MessageLogService(mongo.db)
+    
+    # Initialize SMS service with the new log service
     sms_service = SMSService(
         app.config['TWILIO_SID'],
         app.config['TWILIO_AUTH_TOKEN'],
-        app.config['TWILIO_PHONE']
+        app.config['TWILIO_PHONE'],
+        message_log_service=message_log_service
     )
     
-    # Initialize services
+    # Initialize other services
     event_service = EventService(
         db=mongo.db,
         sms_service=sms_service,

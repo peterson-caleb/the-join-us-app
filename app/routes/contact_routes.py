@@ -1,6 +1,7 @@
+# Modified file: app/routes/contact_routes.py
 # app/routes/contact_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from .. import contact_service
+from .. import contact_service, message_log_service
 from flask_login import login_required
 
 bp = Blueprint('contacts', __name__)
@@ -18,7 +19,6 @@ def manage_master_list():
         flash('Contact added successfully!', 'success')
         return redirect(url_for('contacts.manage_master_list'))
 
-    # Get filter parameters
     tag_filter = request.args.get('tags')
     filters = {}
     if tag_filter:
@@ -28,9 +28,9 @@ def manage_master_list():
     all_tags = contact_service.get_all_tags()
     
     return render_template('contacts/list.html', 
-                         master_list=contacts, 
-                         all_tags=all_tags, 
-                         selected_tags=tag_filter.split(',') if tag_filter else [])
+                           master_list=contacts, 
+                           all_tags=all_tags, 
+                           selected_tags=tag_filter.split(',') if tag_filter else [])
 
 @bp.route('/delete_contact/<contact_id>', methods=['POST'])
 @login_required
@@ -50,3 +50,15 @@ def edit_contact(contact_id):
     contact_service.update_contact(contact_id, contact_data)
     flash('Contact updated successfully!', 'success')
     return redirect(url_for('contacts.manage_master_list'))
+
+@bp.route('/contact/<contact_id>/history')
+@login_required
+def message_history(contact_id):
+    contact = contact_service.get_contact(contact_id)
+    if not contact:
+        flash('Contact not found.', 'error')
+        return redirect(url_for('contacts.manage_master_list'))
+        
+    logs = message_log_service.get_logs_for_contact(contact_id)
+    
+    return render_template('contacts/history.html', contact=contact, logs=logs)

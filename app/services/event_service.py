@@ -1,3 +1,4 @@
+# Modified file: app/services/event_service.py
 # app/services/event_service.py
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -65,7 +66,7 @@ class EventService:
 
     def manage_event_capacity(self):
         self.logger.info("Starting event capacity management")
-        events = self.events_collection.find({})
+        events = self.events_collection.find({"automation_status": "active"})
         for event_data in events:
             try:
                 event = Event.from_dict(event_data)
@@ -98,16 +99,17 @@ class EventService:
                     phone_number=invitee['phone'],
                     event_name=event.name,
                     event_date=event.date,
-                    invitee_name=invitee_name,
-                    rsvp_token=rsvp_token
+                    event_code=event.event_code,
+                    event_id=event._id,
+                    contact_id=ObjectId(invitee['contact_id'])
                 )
-                invitee['status'] = status
+                invitee['status'] = status if status == "SENT" else "ERROR"
                 invitee['invited_at'] = now
                 invitee['rsvp_token'] = rsvp_token
                 if message_sid: invitee['message_sid'] = message_sid
                 if error_message: invitee['error_message'] = error_message
                 updates_made = True
-                self.logger.info(f"Updated invitee status to {status} for {invitee['phone']}")
+                self.logger.info(f"Updated invitee status to {invitee['status']} for {invitee['phone']}")
             except Exception as e:
                 self.logger.error(f"Failed to process invitation for {invitee['phone']}: {str(e)}")
                 invitee['status'] = 'ERROR'
@@ -119,7 +121,7 @@ class EventService:
     def send_pending_reminders(self):
         self.logger.info("Starting pending reminder check...")
         now = self.get_current_time()
-        events = self.events_collection.find({})
+        events = self.events_collection.find({"automation_status": "active"})
         for event_data in events:
             event = Event.from_dict(event_data)
             updates_made = False
@@ -135,7 +137,9 @@ class EventService:
                         sid, status, err = self.sms_service.send_reminder(
                             phone_number=invitee['phone'],
                             event_name=event.name,
-                            expiry_hours=hours_remaining
+                            expiry_hours=hours_remaining,
+                            event_id=event._id,
+                            contact_id=ObjectId(invitee['contact_id'])
                         )
                         if status == "SENT":
                             invitee['reminder_sent_at'] = now
@@ -144,6 +148,47 @@ class EventService:
                             self.logger.error(f"Failed to send reminder to {invitee['phone']}: {err}")
             if updates_made:
                 self.update_event(str(event._id), {"invitees": event.invitees})
+    
+    def find_event_by_code(self, event_code):
+        event_data = self.events_collection.find_one({"event_code": event_code})
+        return Event.from_dict(event_data) if event_data else None
+
+    def process_rsvp(self, phone_number, message_body):
+        """
+        Processes an RSVP received via SMS.
+        Returns: (status, event, invitee)
+        """
+        parts = message_body.strip().upper().split()
+        if len(parts) != 2:
+            return 'ERROR', None, None
+        
+        event_code, response = parts
+        if response not in ['YES', 'NO']:
+            return 'ERROR', None, None
+            
+        event = self.find_event_by_code(event_code)
+        if not event:
+            return 'ERROR', None, None
+            
+        invitee = next((i for i in event.invitees if i.get("phone") == phone_number and i.get("status") == "invited"), None)
+        
+        if not invitee:
+            self.logger.warning(f"No active invitation found for {phone_number} for event {event_code}")
+            return 'ERROR', event, None
+            
+        if response == 'YES':
+            confirmed_count = sum(1 for i in event.invitees if i.get('status') == 'YES')
+            if confirmed_count >= event.capacity:
+                invitee['status'] = 'WAITLIST'
+                self.update_event(str(event._id), {"invitees": event.invitees})
+                return 'FULL', event, invitee
+        
+        invitee['status'] = response
+        invitee['responded_at'] = self.get_current_time()
+        self.update_event(str(event._id), {"invitees": event.invitees})
+        
+        self.logger.info(f"Processed RSVP from {phone_number} for event {event_code} as {response}")
+        return response, event, invitee
 
     def find_event_and_invitee_by_token(self, token):
         event_data = self.events_collection.find_one({"invitees.rsvp_token": token})
@@ -196,25 +241,20 @@ class EventService:
         
         for idx, invitee_data in enumerate(invitees):
             contact_id = str(invitee_data['_id'])
-            # Only add if the contact_id is not already in the list
             if contact_id not in current_contact_ids:
                 new_invitee = {
-                    "_id": ObjectId(),
-                    "name": invitee_data['name'],
-                    "phone": invitee_data['phone'],
-                    "status": "pending",
-                    "priority": start_priority + newly_added_count, # Use counter for priority
-                    "added_at": self.get_current_time(),
-                    "contact_id": contact_id
+                    "_id": ObjectId(), "name": invitee_data['name'], "phone": invitee_data['phone'],
+                    "status": "pending", "priority": start_priority + newly_added_count,
+                    "added_at": self.get_current_time(), "contact_id": contact_id
                 }
                 event.invitees.append(new_invitee)
-                current_contact_ids.add(contact_id) # Add to our set to prevent duplicates in the same batch
-                newly_added_count += 1 # Increment the counter
+                current_contact_ids.add(contact_id)
+                newly_added_count += 1
 
         if newly_added_count > 0:
             self.update_event(event_id, {"invitees": event.invitees})
 
-        return newly_added_count # Return the final count
+        return newly_added_count
 
     def delete_invitee(self, event_id, invitee_id):
         self.events_collection.update_one({"_id": ObjectId(event_id)}, {"$pull": {"invitees": {"_id": ObjectId(invitee_id)}}})
