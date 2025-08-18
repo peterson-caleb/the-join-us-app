@@ -77,13 +77,18 @@
                 {% else %}
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('contacts.join_list') }}">
+                                <i class="bi bi-envelope-plus"></i> Join Contact List
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.login') }}">
                                 <i class="bi bi-box-arrow-in-right"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('auth.register') }}">
-                                <i class="bi bi-person-plus"></i> Register
+                                <i class="bi bi-person-plus"></i> Register User
                             </a>
                         </li>
                     </ul>

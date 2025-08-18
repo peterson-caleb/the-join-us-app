@@ -1,16 +1,24 @@
 # app/services/contact_service.py
 from bson import ObjectId
 from ..models.contact import Contact
+from pymongo.errors import DuplicateKeyError
 
 class ContactService:
     def __init__(self, db):
         self.db = db
         self.contacts_collection = db['master_list']
+        # Ensure phone numbers are unique at the database level
+        self.contacts_collection.create_index('phone', unique=True)
 
     def create_contact(self, contact_data):
         contact = Contact.from_dict(contact_data)
-        result = self.contacts_collection.insert_one(contact.to_dict())
-        return str(result.inserted_id)
+        try:
+            # Attempt to insert the new contact
+            result = self.contacts_collection.insert_one(contact.to_dict())
+            return str(result.inserted_id)
+        except DuplicateKeyError:
+            # If the phone number is already taken, raise a friendly error
+            raise ValueError(f"A contact with the phone number {contact_data['phone']} already exists.")
 
     def get_contacts(self, filters=None):
         query = filters or {}

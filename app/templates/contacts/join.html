@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Join Our Contact List{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-5">
+                <div class="card-header">
+                    <h4 class="mb-0">Join Our Contact List</h4>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Sign up here to be added to our master contact list for future event invitations.</p>
+                    <form method="POST" action="{{ url_for('contacts.join_list') }}">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="phone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="phone" name="phone" required
+                                   pattern="\+[1-9]\d{1,14}"
+                                   title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
+                            <div class="form-text">
+                                Please use the international E.164 format (e.g., +12223334444).
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Join Now</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
