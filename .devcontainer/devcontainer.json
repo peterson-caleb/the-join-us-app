@@ -4,5 +4,9 @@
   "service": "app",
   "workspaceFolder": "/workspaces/rsvp-priority",
   "forwardPorts": [5000],
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
   "postCreateCommand": "echo 'Codespace is ready!'"
 }
+
