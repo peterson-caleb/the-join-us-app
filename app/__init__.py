@@ -21,6 +21,10 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
+    # --- ADD THIS LINE TO DEBUG ---
+    print(f"--- !!! CONNECTING TO MONGO URI: {app.config['MONGO_URI']} !!! ---")
+    # -----------------------------
+
     # Setup basic app logging
     logging.basicConfig(level=logging.INFO)
     
@@ -104,5 +108,26 @@ def create_app(config_class=Config):
     @app.errorhandler(404)
     def not_found(error):
         return render_template('errors/404.html'), 404
+    
+    # --- ADD THIS TEMPORARY BLOCK TO CREATE THE FIRST ADMIN USER ---
+    with app.app_context():
+        admin_username = os.getenv('ADMIN_USERNAME')
+        admin_email = os.getenv('ADMIN_EMAIL')
+        admin_password = os.getenv('ADMIN_PASSWORD')
+
+        # Check if the environment variables are set and if there are no users yet
+        if admin_username and admin_email and admin_password and user_service.users_collection.count_documents({}) == 0:
+            try:
+                user_service.create_user(
+                    username=admin_username,
+                    email=admin_email,
+                    password=admin_password,
+                    is_admin=True,
+                    registration_method='auto_created'
+                )
+                app.logger.info(f"Admin user '{admin_username}' created successfully!")
+            except ValueError as e:
+                app.logger.error(f"Admin user already exists or another error occurred: {e}")
+    # --- END OF TEMPORARY BLOCK ---
 
     return app
