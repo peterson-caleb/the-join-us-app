@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_required
 from .config import Config
 import logging
 from datetime import datetime
+import os
 
 mongo = PyMongo()
 login_manager = LoginManager()
@@ -65,9 +66,11 @@ def create_app(config_class=Config):
 
     # Initialize scheduler with app context
     if app.config.get('SCHEDULER_ENABLED', True):
-        task_scheduler = TaskScheduler.get_instance()
-        task_scheduler.init_app(app, event_service, sms_service)
-        app.logger.info('Task scheduler initialized and started')
+        # This check prevents the scheduler from starting twice in debug mode
+        if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+            task_scheduler = TaskScheduler.get_instance()
+            task_scheduler.init_app(app, event_service, sms_service)
+            app.logger.info('Task scheduler initialized and started in child process')
 
     # User loader for Flask-Login
     @login_manager.user_loader
