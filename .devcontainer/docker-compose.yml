@@ -1,22 +1,20 @@
-services:
-  # Your Flask application service
-  app:
-    build:
-      context: ..
-      dockerfile: .devcontainer/Dockerfile
-    volumes:
-      - ..:/workspaces/rsvp-priority:cached
-    # Keep the container running
-    command: sleep infinity
-    depends_on:
-      - mongo
+{
+  "name": "RSVP App (Docker Compose)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/rsvp-priority",
+  "forwardPorts": [5000],
 
-  # The MongoDB database service
-  mongo:
-    image: mongo:latest
-    volumes:
-      - mongo-data:/data/db
-    restart: unless-stopped
+  "portAttributes": {
+    "5000": {
+      "label": "Flask App",
+      "onAutoForward": "openPreview",
+      "visibility": "public"
+    }
+  },
 
-volumes:
-  mongo-data:
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+  "postCreateCommand": "echo 'Codespace is ready!'"
+}
