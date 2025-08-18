@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}RSVP Confirmation{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    {% if success %}
+                        <h1 class="text-success"><i class="bi bi-check2-circle"></i></h1>
+                        <h2>Thank You!</h2>
+                    {% else %}
+                        <h1 class="text-danger"><i class="bi bi-exclamation-triangle"></i></h1>
+                        <h2>Oops!</h2>
+                    {% endif %}
+                    <p class="lead">{{ message }}</p>
+                    <a href="{{ url_for('home') }}" class="btn btn-primary mt-3">Return to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

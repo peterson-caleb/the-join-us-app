@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}RSVP for {{ event.name }}{% endblock %}
+
+{% block content %}
+<div class="container text-center mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="mb-0">You're Invited!</h2>
+                </div>
+                <div class="card-body">
+                    <h3 class="card-title">{{ event.name }}</h3>
+                    <p class="card-text">
+                        A message for you, {{ invitee.name }}.
+                    </p>
+                    <p class="lead">
+                        The event is on <strong>{{ event.date }}</strong>. Will you be attending?
+                    </p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                        <a href="{{ url_for('events.submit_rsvp', token=token, response='YES') }}" class="btn btn-success btn-lg px-4 gap-3">
+                            <i class="bi bi-check-circle"></i> Yes, I'll be there!
+                        </a>
+                        <a href="{{ url_for('events.submit_rsvp', token=token, response='NO') }}" class="btn btn-danger btn-lg px-4">
+                            <i class="bi bi-x-circle"></i> No, I can't make it
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Your response is important to us. Please reply promptly.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
