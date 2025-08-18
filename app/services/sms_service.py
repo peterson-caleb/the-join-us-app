@@ -8,11 +8,11 @@ from collections import deque
 import threading
 
 class SMSService:
-    def __init__(self, twilio_sid, twilio_auth_token, twilio_phone, message_log_service):
+    def __init__(self, twilio_sid, twilio_auth_token, twilio_phone, message_log_service, base_url):
         self.client = Client(twilio_sid, twilio_auth_token)
         self.twilio_phone = twilio_phone
         self.message_log_service = message_log_service
-        self.base_url = base_url
+        self.base_url = base_url # Add this line
         
         # Rate limiting settings
         self.max_messages_per_day = 100  # Twilio's default limit
