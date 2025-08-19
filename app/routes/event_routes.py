@@ -1,3 +1,4 @@
+# app/routes/event_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from .. import event_service, contact_service
 from datetime import datetime
@@ -8,6 +9,7 @@ import json
 
 bp = Blueprint('events', __name__)
 
+# ... (other routes are unchanged) ...
 @bp.route('/events', methods=['GET', 'POST'])
 @login_required
 def manage_events():
@@ -102,7 +104,6 @@ def delete_invitee(event_id, invitee_id):
         flash(f'Error removing invitee: {str(e)}', 'error')
     return redirect(url_for('events.manage_invitees', event_id=event_id))
 
-# THIS IS THE MISSING FUNCTION
 @bp.route('/events/<event_id>/delete', methods=['POST'])
 @login_required
 def delete_event(event_id):
@@ -129,4 +130,7 @@ def rsvp_page(token):
 @bp.route('/rsvp/submit/<token>/<response>', methods=['GET'])
 def submit_rsvp(token, response):
     success, message = event_service.process_rsvp_from_url(token, response)
-    return render_template("events/rsvp_confirmation.html", success=success, message=message)
+    # --- ADDED THIS LOGIC ---
+    event, invitee = event_service.find_event_and_invitee_by_token(token)
+    # --- PASS THE EVENT AND INVITEE TO THE TEMPLATE ---
+    return render_template("events/rsvp_confirmation.html", success=success, message=message, event=event, invitee=invitee)
