@@ -11,6 +11,13 @@ class UserService:
         self.users_collection.create_index('email', unique=True)
         self.users_collection.create_index('username', unique=True)
 
+    def is_first_run(self):
+        """
+        Checks if there are any users in the database.
+        Returns True if the users collection is empty, False otherwise.
+        """
+        return self.users_collection.count_documents({}) == 0
+
     def create_user(self, username, email, password, is_admin=False, registration_method=None):
         # Check if user already exists
         if self.users_collection.find_one({'$or': [{'email': email}, {'username': username}]}):

@@ -72,7 +72,6 @@ def create_app(config_class=Config):
         # This check prevents the scheduler from starting twice in debug mode
         if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             task_scheduler = TaskScheduler.get_instance()
-            # CORRECTED LINE: Pass both required services to your scheduler
             task_scheduler.init_app(app, event_service) 
             app.logger.info('Task scheduler initialized and started.')
 
@@ -83,7 +82,8 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_current_year():
-        return {'current_year': datetime.timezone.utc.year}
+        # Corrected this line
+        return {'current_year': datetime.utcnow().year}
 
     # Register blueprints
     from .routes.event_routes import bp as event_bp
