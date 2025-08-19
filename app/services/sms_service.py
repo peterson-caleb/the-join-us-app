@@ -33,7 +33,6 @@ class SMSService:
         hourly_count = self.message_log_service.get_sms_count_since(one_hour_ago)
         if hourly_count >= self.hourly_limit:
             reason = f"Hourly SMS limit reached ({hourly_count}/{self.hourly_limit})."
-            logging.warning(reason)
             return False, reason
 
         # Check daily limit
@@ -41,7 +40,6 @@ class SMSService:
         daily_count = self.message_log_service.get_sms_count_since(one_day_ago)
         if daily_count >= self.daily_limit:
             reason = f"Daily SMS limit reached ({daily_count}/{self.daily_limit})."
-            logging.warning(reason)
             return False, reason
 
         return True, "Limits OK"
@@ -53,13 +51,16 @@ class SMSService:
         """
         # 1. Master switch check
         if not self.enabled:
-            logging.info(f"SMS sending is disabled. [Simulated Send] To: {to_number} Body: {message_body}")
+            logging.info(f"SMS sending is disabled. [Simulated Send] To: {to_number}")
             self.message_log_service.log_message(to_number, message_body, status='blocked', error_message='SMS sending is disabled globally.')
-            return True # Return True to not break app flow, but log as blocked.
+            return True
 
         # 2. Rate limit check
         can_send, reason = self._check_rate_limits()
         if not can_send:
+            # --- THIS IS THE IMPROVEMENT ---
+            # Log a high-visibility error when blocked
+            logging.error(f"SMS BLOCKED: Rate limit exceeded. Reason: {reason}")
             self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason)
             return False
 
