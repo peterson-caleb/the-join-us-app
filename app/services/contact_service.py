@@ -1,20 +1,14 @@
 # app/services/contact_service.py
 from bson import ObjectId
 from ..models.contact import Contact
-# No longer need DuplicateKeyError
-# from pymongo.errors import DuplicateKeyError 
 
 class ContactService:
     def __init__(self, db):
         self.db = db
         self.contacts_collection = db['master_list']
-        # self.contacts_collection.create_index('phone', unique=True) # <-- DELETE OR COMMENT OUT THIS LINE
 
     def create_contact(self, contact_data):
-        # Manually check if a contact with the same phone number already exists
-        if self.contacts_collection.find_one({'phone': contact_data['phone']}):
-            raise ValueError(f"A contact with the phone number {contact_data['phone']} already exists.")
-
+        # The check for duplicate phone numbers has been removed from here.
         contact = Contact.from_dict(contact_data)
         result = self.contacts_collection.insert_one(contact.to_dict())
         return str(result.inserted_id)
