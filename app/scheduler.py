@@ -104,16 +104,13 @@ class TaskScheduler:
             self.logger.error(f"Error in job '{job_name}': {e}", exc_info=True)
 
     def _run_expiry_check(self):
-        # Assumes EventService has a method named process_expired_invitations
         self._run_job(self.event_service.process_expired_invitations, "Check for expired invitations")
 
     def _run_capacity_check(self):
-        # Assumes EventService has a method named check_capacity_and_send_invites
-        self._run_job(self.event_service.check_capacity_and_send_invites, "Manage event capacity")
+        # CORRECTED THIS LINE
+        self._run_job(self.event_service.manage_event_capacity, "Manage event capacity")
         
     def _run_reminder_check(self):
-        # Assumes EventService has a method named send_pending_reminders
-        # You will need to create this method in your EventService.
         if hasattr(self.event_service, 'send_pending_reminders'):
             self._run_job(self.event_service.send_pending_reminders, "Send pending reminders")
         else:
