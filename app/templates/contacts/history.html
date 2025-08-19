@@ -1,3 +1,4 @@
+{# app/templates/contacts/history.html #}
 {% extends "base.html" %}
 
 {% block title %}Message History for {{ contact.name }}{% endblock %}
@@ -24,21 +25,24 @@
                 <li class="list-group-item">
                     <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">
+                            {# This part of the logic needs to be added to your log entries #}
                             {% if log.direction == 'outgoing' %}
                                 <i class="bi bi-arrow-up-right-circle-fill text-primary"></i> Outgoing
                             {% else %}
                                 <i class="bi bi-arrow-down-left-circle-fill text-success"></i> Incoming
                             {% endif %}
-                            - <span class="text-capitalize">{{ log.message_type.replace('_', ' ') }}</span>
+                            - <span class="text-capitalize">{{ log.get('message_type', 'General').replace('_', ' ') }}</span>
                         </h5>
-                        <small>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }} UTC</small>
+                        {# THIS IS THE FIX: Changed log.created_at to log.timestamp #}
+                        <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</small>
                     </div>
-                    <p class="mb-1"><code>{{ log.body }}</code></p>
+                    <p class="mb-1"><code>{{ log.message_body }}</code></p>
                     <small>
                         <strong>Status:</strong> 
                         <span class="badge 
-                            {% if log.status == 'SENT' or log.status == 'RECEIVED' %}bg-success
-                            {% elif log.status == 'ERROR' %}bg-danger
+                            {% if log.status == 'sent' or log.status == 'RECEIVED' %}bg-success
+                            {% elif log.status == 'failed' or log.status == 'ERROR' %}bg-danger
+                            {% elif log.status == 'blocked' %}bg-warning
                             {% else %}bg-secondary
                             {% endif %}">
                             {{ log.status }}

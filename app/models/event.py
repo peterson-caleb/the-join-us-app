@@ -1,3 +1,4 @@
+# app/models/event.py
 from datetime import datetime
 from bson import ObjectId
 import secrets
@@ -15,7 +16,7 @@ class Event:
         self.created_at = datetime.utcnow()
         self.event_code = self._generate_event_code()
         self.invitation_expiry_hours = invitation_expiry_hours
-        self.automation_status = 'paused' # <-- ADD THIS (default to paused)
+        self.automation_status = 'paused'
         self._id = None
 
     def _generate_event_code(self):
@@ -27,26 +28,45 @@ class Event:
         return f"{prefix}{numbers}"
 
     @classmethod
-    def from_dict(cls, data, invitation_expiry_hours=24): # <-- FIX #1: Added the argument here
+    def from_dict(cls, data, invitation_expiry_hours=24):
         """Create an event instance from dictionary data"""
+        
+        # --- THIS IS THE FIX ---
+        # Convert date string from database/form into a real datetime object
+        event_date = data.get('date')
+        if isinstance(event_date, str):
+            try:
+                # Assuming the date is in 'YYYY-MM-DD' format
+                event_date = datetime.strptime(event_date, '%Y-%m-%d')
+            except (ValueError, TypeError):
+                # Handle cases where the date might be invalid or already a datetime object
+                event_date = datetime.now() # Fallback to now
+        elif not isinstance(event_date, datetime):
+             event_date = datetime.now() # Fallback for other invalid types
+        # --- END OF FIX ---
+
         event = cls(
             name=data['name'],
-            date=data['date'],
+            date=event_date, # Use the converted datetime object
             capacity=data['capacity'],
-            invitation_expiry_hours=invitation_expiry_hours # <-- FIX #2: Use the argument here
+            invitation_expiry_hours=invitation_expiry_hours
         )
         event.invitees = data.get('invitees', [])
         event.created_at = data.get('created_at', datetime.utcnow())
         event.event_code = data.get('event_code', event._generate_event_code())
-        event.automation_status = data.get('automation_status', 'paused') # <-- ADD THIS
+        event.automation_status = data.get('automation_status', 'paused')
         event._id = data.get('_id')
         return event
 
     def to_dict(self):
         """Convert event to dictionary for storage"""
+        
+        # Ensure date is a string in 'YYYY-MM-DD' format for database storage
+        date_str = self.date.strftime('%Y-%m-%d') if isinstance(self.date, datetime) else self.date
+
         return {
             "name": self.name,
-            "date": self.date,
+            "date": date_str,
             "capacity": self.capacity,
             "invitees": self.invitees,
             "created_at": self.created_at,
