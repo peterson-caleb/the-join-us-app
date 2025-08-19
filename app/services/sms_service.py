@@ -44,31 +44,33 @@ class SMSService:
 
         return True, "Limits OK"
 
-    def _send(self, to_number, message_body):
+    def _send(self, to_number, message_body, contact_id=None, event_id=None):
         """
         Private method to handle the actual sending logic including all guardrails.
-        Returns True on success/simulated success, False on failure.
+        Returns a tuple: (success: bool, reason: str or None).
         """
+        log_kwargs = {'contact_id': contact_id, 'event_id': event_id}
+        
         # 1. Master switch check
         if not self.enabled:
+            reason = 'SMS sending is disabled globally.'
             logging.info(f"SMS sending is disabled. [Simulated Send] To: {to_number}")
-            self.message_log_service.log_message(to_number, message_body, status='blocked', error_message='SMS sending is disabled globally.')
-            return True
+            self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason, **log_kwargs)
+            return True, None # Return success to not break app flow
 
         # 2. Rate limit check
         can_send, reason = self._check_rate_limits()
         if not can_send:
-            # --- THIS IS THE IMPROVEMENT ---
-            # Log a high-visibility error when blocked
             logging.error(f"SMS BLOCKED: Rate limit exceeded. Reason: {reason}")
-            self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason)
-            return False
+            self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason, **log_kwargs)
+            return False, reason
 
         # 3. Twilio client check
         if not self.client:
-            logging.warning(f"SMS not sent to {to_number} (Twilio client not initialized).")
-            self.message_log_service.log_message(to_number, message_body, status='failed', error_message='Twilio client not initialized.')
-            return False
+            reason = 'Twilio client not initialized.'
+            logging.warning(f"SMS not sent to {to_number} ({reason}).")
+            self.message_log_service.log_message(to_number, message_body, status='failed', error_message=reason, **log_kwargs)
+            return False, reason
 
         # 4. Attempt to send
         try:
@@ -78,31 +80,32 @@ class SMSService:
                 body=message_body
             )
             logging.info(f"SMS sent successfully to {to_number}. SID: {message.sid}")
-            self.message_log_service.log_message(to_number, message_body, status='sent', message_sid=message.sid)
-            return True
+            self.message_log_service.log_message(to_number, message_body, status='sent', message_sid=message.sid, **log_kwargs)
+            return True, None
         except TwilioRestException as e:
             logging.error(f"Failed to send SMS to {to_number}. Error: {e}")
-            self.message_log_service.log_message(to_number, message_body, status='failed', error_message=str(e))
-            return False
+            self.message_log_service.log_message(to_number, message_body, status='failed', error_message=str(e), **log_kwargs)
+            return False, str(e)
         except Exception as e:
+            reason = f"Unexpected error: {str(e)}"
             logging.error(f"An unexpected error occurred sending SMS to {to_number}. Error: {e}")
-            self.message_log_service.log_message(to_number, message_body, status='failed', error_message=f"Unexpected error: {str(e)}")
-            return False
+            self.message_log_service.log_message(to_number, message_body, status='failed', error_message=reason, **log_kwargs)
+            return False, reason
 
     def send_invitation(self, invitee, event):
         """Sends an RSVP invitation SMS."""
         rsvp_url = f"{self.base_url}/rsvp/{invitee['rsvp_token']}"
         message_body = f"Hi {invitee['name']}, you're invited to {event['name']}! Please RSVP here: {rsvp_url}"
-        return self._send(invitee['phone'], message_body)
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))
 
     def send_confirmation(self, invitee, event):
         """Sends a confirmation SMS to a guest who RSVP'd 'YES'."""
-        event_date_str = event.get('date').strftime('%A, %B %d') if event.get('date') else 'the event date'
+        event_date_str = event.get('date').strftime('%A, %B %d') if isinstance(event.get('date'), datetime) else 'the event date'
         message_body = f"Thanks for confirming, {invitee['name']}! We've got you down for {event['name']} on {event_date_str}. See you there!"
-        return self._send(invitee['phone'], message_body)
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))
 
     def send_reminder(self, invitee, event):
         """Sends a reminder SMS to a guest with a pending invitation."""
         rsvp_url = f"{self.base_url}/rsvp/{invitee['rsvp_token']}"
         message_body = f"Hi {invitee['name']}, just a friendly reminder to RSVP for {event['name']}. Please respond here: {rsvp_url}"
-        return self._send(invitee['phone'], message_body)
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))

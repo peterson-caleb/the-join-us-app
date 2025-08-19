@@ -9,6 +9,7 @@ import pytz
 import secrets
 
 class EventService:
+    # ... (init, logging, and other methods are unchanged) ...
     def __init__(self, db, sms_service=None, invitation_expiry_hours=24):
         self.db = db
         self.events_collection = db['events']
@@ -37,7 +38,37 @@ class EventService:
 
     def get_current_time(self):
         return datetime.now(self.timezone)
+        
+    def _send_invitations(self, event, invitees_to_send):
+        now = self.get_current_time()
+        
+        for invitee in invitees_to_send:
+            invitee['rsvp_token'] = secrets.token_urlsafe(16)
+            
+            # MODIFIED: Unpack the new tuple return value
+            success, reason = self.sms_service.send_invitation(invitee, event.to_dict())
+            
+            update_fields = {
+                "invitees.$.rsvp_token": invitee['rsvp_token']
+            }
 
+            if success:
+                update_fields["invitees.$.status"] = "invited"
+                update_fields["invitees.$.invited_at"] = now
+                update_fields["invitees.$.error_message"] = None # Clear any previous error
+                self.logger.info(f"Successfully sent invitation to {invitee['phone']}")
+            else:
+                update_fields["invitees.$.status"] = "ERROR"
+                # MODIFIED: Store the failure reason in the database
+                update_fields["invitees.$.error_message"] = reason 
+                self.logger.error(f"Failed to send invitation to {invitee['phone']}: {reason}")
+
+            self.events_collection.update_one(
+                {"_id": event._id, "invitees._id": invitee['_id']},
+                {"$set": update_fields}
+            )
+            
+    # ... (the rest of the file is unchanged) ...
     def process_expired_invitations(self):
         self.logger.info("Starting expired invitations check (process_expired_invitations)")
         now = self.get_current_time()
@@ -89,39 +120,7 @@ class EventService:
         pending_invitees.sort(key=lambda x: x.get('priority', float('inf')))
         return pending_invitees[:limit]
 
-    def _send_invitations(self, event, invitees_to_send):
-        now = self.get_current_time()
-        updated_invitee_ids = []
-        updates = {}
-
-        for invitee in invitees_to_send:
-            invitee['rsvp_token'] = secrets.token_urlsafe(16)
-            
-            # This call now matches the SMSService definition
-            success = self.sms_service.send_invitation(invitee, event.to_dict())
-
-            if success:
-                updates[f"invitees.$[elem{len(updated_invitee_ids)}].status"] = "invited"
-                updates[f"invitees.$[elem{len(updated_invitee_ids)}].invited_at"] = now
-                updates[f"invitees.$[elem{len(updated_invitee_ids)}].rsvp_token"] = invitee['rsvp_token']
-                self.logger.info(f"Successfully sent invitation to {invitee['phone']}")
-            else:
-                updates[f"invitees.$[elem{len(updated_invitee_ids)}].status"] = "ERROR"
-                self.logger.error(f"Failed to send invitation to {invitee['phone']}")
-            
-            updated_invitee_ids.append(ObjectId(invitee['_id']))
-
-        if updated_invitee_ids:
-            array_filters = [{"elem" + str(i) + "._id": oid} for i, oid in enumerate(updated_invitee_ids)]
-            self.events_collection.update_one(
-                {"_id": event._id},
-                {"$set": updates},
-                array_filters=array_filters
-            )
-
     def send_pending_reminders(self):
-        # This is a placeholder as it wasn't fully implemented in your original scheduler.
-        # You can add logic here to find 'invited' guests and send them a reminder.
         self.logger.info("Running send_pending_reminders job (no action taken).")
         pass
     
@@ -208,8 +207,6 @@ class EventService:
         self.events_collection.update_one({"_id": ObjectId(event_id)}, {"$pull": {"invitees": {"_id": ObjectId(invitee_id)}}})
 
     def reorder_invitees(self, event_id, invitee_order):
-        # This operation is complex and best handled with a bulk update.
-        # For simplicity in this fix, we'll keep the read-modify-write pattern.
         event = self.get_event(event_id)
         if not event: raise ValueError("Event not found")
         invitees_dict = {str(i['_id']): i for i in event.invitees}

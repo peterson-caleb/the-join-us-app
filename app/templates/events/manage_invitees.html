@@ -1,3 +1,4 @@
+{# app/templates/events/manage_invitees.html #}
 {% extends "base.html" %}
 
 {% block title %}Manage Invitees - {{ event.name }}{% endblock %}
@@ -29,7 +30,6 @@
             </div>
         </div>
     </div>
-
     <div class="row">
         <div class="col-lg-8">
             <div class="card">
@@ -55,7 +55,10 @@
                         <div class="invitee-item" data-id="{{ invitee._id }}">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <span class="status-indicator status-{{ invitee.status|lower if invitee.status else 'pending' }}" data-bs-toggle="tooltip" title="{{ invitee.status|capitalize }}"></span>
+                                    {# THIS IS THE MODIFIED LINE FOR THE TOOLTIP #}
+                                    <span class="status-indicator status-{{ invitee.status|lower if invitee.status else 'pending' }}" 
+                                          data-bs-toggle="tooltip" 
+                                          title="{{ invitee.error_message if invitee.error_message else invitee.status|capitalize }}"></span>
                                     <strong>{{ invitee.name }}</strong>
                                     <small class="text-muted">({{ invitee.phone }})</small>
                                 </div>
@@ -79,7 +82,6 @@
                             <label for="invitees-select" class="form-label">Select people to invite:</label>
                             <select name="invitees_to_add" id="invitees-select" class="form-select" multiple style="height: 200px;">
                                 {% for contact in contacts %}
-                                    {# THIS IS THE SIMPLIFIED AND CORRECTED IF CONDITION #}
                                     {% if contact._id not in current_invitee_ids %}
                                         <option value="{{ contact._id }}">{{ contact.name }} ({{ contact.phone }})</option>
                                     {% endif %}
@@ -101,6 +103,12 @@
 <script src="https://cdn.jsdelivr.net/npm/dragula@3.7.3/dist/dragula.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Re-initialize tooltips after changes
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
     var drake = dragula([document.getElementById('inviteeList')]);
     drake.on('drop', (el, target) => {
         const inviteeOrder = Array.from(target.children).map(item => item.dataset.id);
