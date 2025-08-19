@@ -1,4 +1,4 @@
-# Modified file: app/__init__.py
+# app/__init__.py
 from flask import Flask, render_template
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, login_required
@@ -21,10 +21,6 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # --- ADD THIS LINE TO DEBUG ---
-    print(f"--- !!! CONNECTING TO MONGO URI: {app.config['MONGO_URI']} !!! ---")
-    # -----------------------------
-
     # Setup basic app logging
     logging.basicConfig(level=logging.INFO)
     
@@ -46,19 +42,22 @@ def create_app(config_class=Config):
     from .services.message_log_service import MessageLogService
     from .scheduler import TaskScheduler
     
-    # Initialize services that don't depend on others
+    # Initialize services that don't depend on others first
     message_log_service = MessageLogService(mongo.db)
     
-    # Initialize SMS service with the new log service
+    # Initialize SMS service with the new guardrail configuration
     sms_service = SMSService(
-        app.config['TWILIO_SID'],
-        app.config['TWILIO_AUTH_TOKEN'],
-        app.config['TWILIO_PHONE'],
+        sid=app.config['TWILIO_SID'],
+        auth_token=app.config['TWILIO_AUTH_TOKEN'],
+        twilio_phone=app.config['TWILIO_PHONE'],
         message_log_service=message_log_service,
-        base_url=app.config['BASE_URL']
+        base_url=app.config['BASE_URL'],
+        enabled=app.config['SMS_ENABLED'],
+        hourly_limit=app.config['SMS_HOURLY_LIMIT'],
+        daily_limit=app.config['SMS_DAILY_LIMIT']
     )
     
-    # Initialize other services
+    # Initialize other services that depend on the SMS service
     event_service = EventService(
         db=mongo.db,
         sms_service=sms_service,
@@ -73,8 +72,9 @@ def create_app(config_class=Config):
         # This check prevents the scheduler from starting twice in debug mode
         if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             task_scheduler = TaskScheduler.get_instance()
-            task_scheduler.init_app(app, event_service, sms_service)
-            app.logger.info('Task scheduler initialized and started in child process')
+            # CORRECTED LINE: Pass both required services to your scheduler
+            task_scheduler.init_app(app, event_service) 
+            app.logger.info('Task scheduler initialized and started.')
 
     # User loader for Flask-Login
     @login_manager.user_loader
@@ -83,7 +83,7 @@ def create_app(config_class=Config):
 
     @app.context_processor
     def inject_current_year():
-        return {'current_year': datetime.utcnow().year}
+        return {'current_year': datetime.timezone.utc.year}
 
     # Register blueprints
     from .routes.event_routes import bp as event_bp
@@ -109,25 +109,23 @@ def create_app(config_class=Config):
     def not_found(error):
         return render_template('errors/404.html'), 404
     
-    # --- ADD THIS TEMPORARY BLOCK TO CREATE THE FIRST ADMIN USER ---
     with app.app_context():
-        admin_username = os.getenv('ADMIN_USERNAME')
-        admin_email = os.getenv('ADMIN_EMAIL')
-        admin_password = os.getenv('ADMIN_PASSWORD')
-
-        # Check if the environment variables are set and if there are no users yet
-        if admin_username and admin_email and admin_password and user_service.users_collection.count_documents({}) == 0:
-            try:
-                user_service.create_user(
-                    username=admin_username,
-                    email=admin_email,
-                    password=admin_password,
-                    is_admin=True,
-                    registration_method='auto_created'
-                )
-                app.logger.info(f"Admin user '{admin_username}' created successfully!")
-            except ValueError as e:
-                app.logger.error(f"Admin user already exists or another error occurred: {e}")
-    # --- END OF TEMPORARY BLOCK ---
+        # Auto-create admin user from env vars if no users exist
+        if user_service.is_first_run():
+            admin_username = os.getenv('ADMIN_USERNAME')
+            admin_email = os.getenv('ADMIN_EMAIL')
+            admin_password = os.getenv('ADMIN_PASSWORD')
+            if admin_username and admin_email and admin_password:
+                try:
+                    user_service.create_user(
+                        username=admin_username,
+                        email=admin_email,
+                        password=admin_password,
+                        is_admin=True,
+                        registration_method='auto_created'
+                    )
+                    app.logger.info(f"Admin user '{admin_username}' created automatically.")
+                except ValueError as e:
+                    app.logger.error(f"Could not auto-create admin user: {e}")
 
     return app

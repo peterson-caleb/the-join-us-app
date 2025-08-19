@@ -1,5 +1,4 @@
 # app/config.py
-# app/config.py
 import os
 from dotenv import load_dotenv
 
@@ -24,6 +23,11 @@ class Config:
     EXPIRY_CHECK_INTERVAL = int(os.getenv('EXPIRY_CHECK_INTERVAL', '1'))  # minutes
     CAPACITY_CHECK_INTERVAL = int(os.getenv('CAPACITY_CHECK_INTERVAL', '1'))  # minutes
     REMINDER_CHECK_INTERVAL = int(os.getenv('REMINDER_CHECK_INTERVAL', '30')) # minutes
+    
+    # SMS Guardrail Configuration
+    SMS_ENABLED = os.getenv('SMS_ENABLED', 'false').lower() == 'true'
+    SMS_HOURLY_LIMIT = int(os.getenv('SMS_HOURLY_LIMIT', '100'))
+    SMS_DAILY_LIMIT = int(os.getenv('SMS_DAILY_LIMIT', '500'))
     
     # Logging configuration
     SMS_LOG_FILE = 'logs/sms.log'

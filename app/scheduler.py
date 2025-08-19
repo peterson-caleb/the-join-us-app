@@ -1,161 +1,134 @@
+# app/scheduler.py
 from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.interval import IntervalTrigger
-from flask import current_app
 import logging
 import atexit
 import os
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
 
 class TaskScheduler:
     _instance = None
-    
-    def __init__(self, app=None, event_service=None, sms_service=None):
-        if not TaskScheduler._instance:
-            self.event_service = event_service
-            self.sms_service = sms_service
-            self.app = app
-            self.scheduler = BackgroundScheduler()
-            self.is_running = False
-            TaskScheduler._instance = self
-            
-            # Setup logging
-            self._setup_logging()
-            
-            # Register the shutdown function
-            atexit.register(self.shutdown)
-            
-            self.logger.info("TaskScheduler initialized")
+
+    def __init__(self):
+        # This constructor should only contain one-time setup logic.
+        self.scheduler = BackgroundScheduler(daemon=True)
+        self.is_running = False
+        self.app = None
+        self.event_service = None
+        self._setup_logging()
+        atexit.register(self.shutdown)
+        self.logger.info("TaskScheduler instance created.")
 
     def _setup_logging(self):
-        """Setup logging configuration"""
+        """Sets up a dedicated logger for the scheduler."""
         if not os.path.exists('logs'):
             os.makedirs('logs')
-
+        
         self.logger = logging.getLogger('scheduler')
+        # Prevent duplicate handlers if this is called more than once
+        if self.logger.hasHandlers():
+            self.logger.handlers.clear()
+
         self.logger.setLevel(logging.INFO)
-
-        file_handler = RotatingFileHandler(
-            'logs/scheduler.log',
-            maxBytes=1024 * 1024,  # 1MB
-            backupCount=5
-        )
-
-        console_handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        )
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        
+        # File handler
+        file_handler = RotatingFileHandler('logs/scheduler.log', maxBytes=1024*1024, backupCount=5)
         file_handler.setFormatter(formatter)
-        console_handler.setFormatter(formatter)
+        self.logger.addHandler(file_handler)
 
-        if not self.logger.handlers:
-            self.logger.addHandler(file_handler)
-            self.logger.addHandler(console_handler)
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        self.logger.addHandler(console_handler)
 
     @classmethod
     def get_instance(cls):
-        """Get or create singleton instance"""
-        if not cls._instance:
-            cls._instance = TaskScheduler()
+        """Gets the singleton instance of the TaskScheduler."""
+        if cls._instance is None:
+            cls._instance = cls()
         return cls._instance
 
-    def init_app(self, app, event_service, sms_service):
-        """Initialize with Flask app"""
-        self.logger.info("Initializing scheduler with Flask app")
+    def init_app(self, app, event_service):
+        """Initializes the scheduler with the Flask app and services."""
+        self.logger.info("Initializing scheduler with Flask app context.")
         self.app = app
         self.event_service = event_service
-        self.sms_service = sms_service
         
         if not self.is_running:
             self.start()
 
     def start(self):
-        """Start the scheduler with configurable intervals"""
-        if not self.is_running:
-            try:
-                self.logger.info("Starting scheduler...")
-                
+        """Adds jobs and starts the scheduler if not already running."""
+        if self.is_running:
+            self.logger.warning("Scheduler is already running. Start ignored.")
+            return
+
+        try:
+            with self.app.app_context():
                 expiry_interval = self.app.config.get('EXPIRY_CHECK_INTERVAL', 1)
                 capacity_interval = self.app.config.get('CAPACITY_CHECK_INTERVAL', 1)
                 reminder_interval = self.app.config.get('REMINDER_CHECK_INTERVAL', 30)
-                
-                self.logger.info(f"Configured intervals - Expiry: {expiry_interval}min, "
-                                 f"Capacity: {capacity_interval}min, Reminder: {reminder_interval}min")
-                
-                self.scheduler.add_job(
-                    func=self._check_expired_invitations_job,
-                    trigger=IntervalTrigger(minutes=expiry_interval),
-                    id='check_expired_invitations',
-                    name='Check expired invitations'
-                )
+            
+            self.logger.info(f"Configuring jobs - Expiry: {expiry_interval}m, Capacity: {capacity_interval}m, Reminder: {reminder_interval}m")
 
-                self.scheduler.add_job(
-                    func=self._manage_event_capacity_job,
-                    trigger=IntervalTrigger(minutes=capacity_interval),
-                    id='manage_event_capacity',
-                    name='Manage event capacity'
-                )
+            self.scheduler.add_job(
+                func=self._run_expiry_check, trigger='interval', minutes=expiry_interval,
+                id='expiry_check_job', name='Check for expired invitations', replace_existing=True
+            )
+            self.scheduler.add_job(
+                func=self._run_capacity_check, trigger='interval', minutes=capacity_interval,
+                id='capacity_check_job', name='Manage event capacity', replace_existing=True
+            )
+            self.scheduler.add_job(
+                func=self._run_reminder_check, trigger='interval', minutes=reminder_interval,
+                id='reminder_check_job', name='Send pending reminders', replace_existing=True
+            )
 
-                self.scheduler.add_job(
-                    func=self._send_pending_reminders_job,
-                    trigger=IntervalTrigger(minutes=reminder_interval),
-                    id='send_pending_reminders',
-                    name='Send pending RSVP reminders'
-                )
+            self.scheduler.start()
+            self.is_running = True
+            self.logger.info("Scheduler started successfully.")
+            self._log_next_run_times()
 
-                self.scheduler.start()
-                self.is_running = True
-                self.logger.info("Scheduler started successfully")
-                
-                self._log_next_run_times()
-                
-            except Exception as e:
-                self.logger.error(f"Error starting scheduler: {str(e)}", exc_info=True)
-                self.is_running = False
+        except Exception as e:
+            self.logger.error(f"Failed to start scheduler: {e}", exc_info=True)
+            self.is_running = False
 
-    def _check_expired_invitations_job(self):
-        """Job that only handles checking and marking expired invitations"""
+    def _run_job(self, job_func, job_name):
+        """Wrapper to execute and log a job function."""
         try:
             with self.app.app_context():
-                self.logger.info("Starting expired invitations check...")
-                self.event_service.check_expired_invitations()
-                self.logger.info("Completed expired invitations check")
+                self.logger.info(f"Running job: '{job_name}'...")
+                job_func()
+                self.logger.info(f"Job '{job_name}' finished.")
         except Exception as e:
-            self.logger.error(f"Error in check_expired_invitations_job: {str(e)}", exc_info=True)
+            self.logger.error(f"Error in job '{job_name}': {e}", exc_info=True)
 
-    def _manage_event_capacity_job(self):
-        """Job that handles checking capacity and sending new invitations"""
-        try:
-            with self.app.app_context():
-                self.logger.info("Starting event capacity management...")
-                self.event_service.manage_event_capacity()
-                self.logger.info("Completed event capacity management")
-        except Exception as e:
-            self.logger.error(f"Error in manage_event_capacity_job: {str(e)}", exc_info=True)
+    def _run_expiry_check(self):
+        # Assumes EventService has a method named process_expired_invitations
+        self._run_job(self.event_service.process_expired_invitations, "Check for expired invitations")
 
-    def _send_pending_reminders_job(self):
-        """Job that handles sending reminders for pending RSVPs."""
-        try:
-            with self.app.app_context():
-                self.logger.info("Starting pending reminders job...")
-                self.event_service.send_pending_reminders()
-                self.logger.info("Completed pending reminders job")
-        except Exception as e:
-            self.logger.error(f"Error in _send_pending_reminders_job: {str(e)}", exc_info=True)
+    def _run_capacity_check(self):
+        # Assumes EventService has a method named check_capacity_and_send_invites
+        self._run_job(self.event_service.check_capacity_and_send_invites, "Manage event capacity")
+        
+    def _run_reminder_check(self):
+        # Assumes EventService has a method named send_pending_reminders
+        # You will need to create this method in your EventService.
+        if hasattr(self.event_service, 'send_pending_reminders'):
+            self._run_job(self.event_service.send_pending_reminders, "Send pending reminders")
+        else:
+            self.logger.warning("Job 'Send pending reminders' skipped: 'send_pending_reminders' method not found in EventService.")
 
     def _log_next_run_times(self):
-        """Helper method to log next scheduled run times"""
-        jobs = self.scheduler.get_jobs()
-        for job in jobs:
-            self.logger.info(f"Job '{job.name}' next run time: {job.next_run_time}")
+        """Logs the next scheduled run time for all jobs."""
+        if not self.is_running: return
+        for job in self.scheduler.get_jobs():
+            self.logger.info(f"Job '{job.name}' next scheduled run: {job.next_run_time}")
 
     def shutdown(self):
-        """Shutdown the scheduler"""
+        """Shuts down the scheduler gracefully."""
         if self.is_running:
-            try:
-                self.logger.info("Shutting down scheduler...")
-                self.scheduler.shutdown()
-                self.is_running = False
-                self.logger.info("Scheduler shutdown successfully")
-            except Exception as e:
-                self.logger.error(f"Error shutting down scheduler: {str(e)}")
+            self.logger.info("Shutting down scheduler...")
+            self.scheduler.shutdown()
+            self.is_running = False
+            self.logger.info("Scheduler shutdown complete.")
