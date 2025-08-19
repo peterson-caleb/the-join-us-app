@@ -104,6 +104,17 @@ def delete_invitee(event_id, invitee_id):
         flash(f'Error removing invitee: {str(e)}', 'error')
     return redirect(url_for('events.manage_invitees', event_id=event_id))
 
+@bp.route('/events/<event_id>/retry_invitee/<invitee_id>', methods=['POST'])
+@login_required
+def retry_invitee(event_id, invitee_id):
+    """Manually retries sending an invitation to a specific invitee."""
+    success, message = event_service.retry_invitation(event_id, invitee_id)
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+    return redirect(url_for('events.manage_invitees', event_id=event_id))
+
 @bp.route('/events/<event_id>/delete', methods=['POST'])
 @login_required
 def delete_event(event_id):

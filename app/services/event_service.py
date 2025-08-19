@@ -218,3 +218,48 @@ class EventService:
                 new_invitees.append(invitee)
         self.update_event(event_id, {"invitees": new_invitees})
         return new_invitees
+    
+    def retry_invitation(self, event_id, invitee_id):
+        """
+        Finds a specific invitee marked as 'ERROR' and re-attempts to send their invitation.
+        """
+        # Find the event and the specific invitee in one query for efficiency
+        event_data = self.events_collection.find_one(
+            {"_id": ObjectId(event_id), "invitees._id": ObjectId(invitee_id)},
+            {"invitees.$": 1}  # Projection to get only the matched invitee
+        )
+        if not event_data or not event_data.get('invitees'):
+            return False, "Invitee or event not found."
+
+        invitee = event_data['invitees'][0]
+        
+        # We need the full event object to pass to the SMS service
+        event = self.get_event(event_id)
+
+        if invitee.get('status') != 'ERROR':
+            return False, f"Cannot retry for {invitee.get('name')}. Their status is not 'ERROR'."
+
+        # Generate a new token for the new invitation link
+        invitee['rsvp_token'] = secrets.token_urlsafe(16)
+        
+        # Call the SMS service to resend the invitation
+        success, reason = self.sms_service.send_invitation(invitee, event.to_dict())
+
+        # Prepare the database update based on the result
+        update_fields = {"invitees.$.rsvp_token": invitee['rsvp_token']}
+        if success:
+            update_fields["invitees.$.status"] = "invited"
+            update_fields["invitees.$.invited_at"] = self.get_current_time()
+            update_fields["invitees.$.error_message"] = None  # Clear the old error
+            message = f"Invitation for {invitee.get('name')} was successfully resent."
+        else:
+            update_fields["invitees.$.error_message"] = reason  # Update with the new error
+            message = f"Failed to resend invitation for {invitee.get('name')}: {reason}"
+
+        # Apply the update to the database
+        self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "invitees._id": ObjectId(invitee_id)},
+            {"$set": update_fields}
+        )
+
+        return success, message
