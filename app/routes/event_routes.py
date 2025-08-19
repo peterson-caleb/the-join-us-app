@@ -9,13 +9,16 @@ import json
 
 bp = Blueprint('events', __name__)
 
-# ... (other routes are unchanged) ...
 @bp.route('/events', methods=['GET', 'POST'])
 @login_required
 def manage_events():
     if request.method == 'POST':
         try:
-            event_data = { 'name': request.form['name'], 'date': request.form['date'], 'capacity': int(request.form['capacity']) }
+            event_data = {
+                'name': request.form['name'],
+                'date': request.form['date'],
+                'capacity': int(request.form['capacity'])
+            }
             event_service.create_event(event_data)
             flash('Event created successfully!', 'success')
         except ValueError as e:
@@ -28,6 +31,32 @@ def manage_events():
     
     now = datetime.now(pytz.UTC)
     return render_template('events/list.html', events=events, now=now)
+
+@bp.route('/events/<event_id>/edit', methods=['POST'])
+@login_required
+def edit_event(event_id):
+    """Update an existing event's details."""
+    try:
+        event = event_service.get_event(event_id)
+        if not event:
+            flash('Event not found.', 'error')
+            return redirect(url_for('events.manage_events'))
+
+        event_data = {
+            'name': request.form['name'],
+            'date': request.form['date'],
+            'capacity': int(request.form['capacity'])
+        }
+        
+        event_service.update_event(event_id, event_data)
+        flash('Event updated successfully!', 'success')
+        
+    except ValueError:
+        flash('Invalid capacity value. Please enter a number.', 'error')
+    except Exception as e:
+        flash(f'Error updating event: {str(e)}', 'error')
+        
+    return redirect(url_for('events.manage_events'))
 
 @bp.route('/events/<event_id>/invitees', methods=['GET'])
 @login_required
@@ -141,7 +170,5 @@ def rsvp_page(token):
 @bp.route('/rsvp/submit/<token>/<response>', methods=['GET'])
 def submit_rsvp(token, response):
     success, message = event_service.process_rsvp_from_url(token, response)
-    # --- ADDED THIS LOGIC ---
     event, invitee = event_service.find_event_and_invitee_by_token(token)
-    # --- PASS THE EVENT AND INVITEE TO THE TEMPLATE ---
     return render_template("events/rsvp_confirmation.html", success=success, message=message, event=event, invitee=invitee)
