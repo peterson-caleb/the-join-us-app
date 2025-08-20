@@ -4,27 +4,221 @@
 
 {% block extra_css %}
 <style>
-    /* Style for the container holding the action buttons */
+    /* Enhanced Event Cards */
+    .event-card {
+        transition: all 0.3s ease;
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        overflow: hidden;
+        background: white;
+        position: relative;
+    }
+
+    .event-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .event-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6);
+    }
+
+    .event-card-header {
+        background: linear-gradient(135deg, #f8fafc, #ffffff);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 2rem;
+        position: relative;
+    }
+
+    .event-card-body {
+        padding: 2rem;
+    }
+
+    .event-card-footer {
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+        padding: 1.5rem 2rem;
+    }
+
+    .event-title {
+        font-size: 1.375rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .event-badges {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+
+    .event-badge {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        color: white;
+        padding: 0.375rem 0.875rem;
+        border-radius: 2rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .event-badge.info {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+    }
+
     .event-actions {
         display: flex;
-        flex-wrap: wrap; /* Allows buttons to wrap to the next line on small screens */
-        gap: 0.5rem; /* Adds space between buttons */
-        justify-content: flex-end; /* Aligns buttons to the right */
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+        align-items: center;
     }
 
-    /* Target individual buttons within the actions container */
-    .event-actions .btn, .event-actions form {
-        margin: 0; /* Resets any default margins */
+    .event-actions .btn {
+        margin: 0;
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
     }
 
-    /* On smaller screens (less than 768px wide), hide the text labels */
+    .capacity-section {
+        background: linear-gradient(135deg, #f1f5f9, #f8fafc);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .capacity-header {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .capacity-progress {
+        height: 32px;
+        background-color: #e2e8f0;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+        margin-bottom: 1rem;
+    }
+
+    .capacity-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.875rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .stat-item {
+        background: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 3px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    .stat-item:hover {
+        border-left-color: #0ea5e9;
+        transform: translateX(2px);
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .stat-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .stat-value.danger {
+        color: #dc2626;
+    }
+
+    .expiry-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: #94a3b8;
+        margin-bottom: 1rem;
+    }
+
+    /* Responsive adjustments */
     @media (max-width: 768px) {
+        .event-card-header,
+        .event-card-body {
+            padding: 1.5rem;
+        }
+        
+        .event-card-footer {
+            padding: 1rem 1.5rem;
+        }
+
         .event-actions .btn-label {
             display: none;
         }
+        
         .event-actions {
-            flex-direction: column; /* Stack buttons vertically */
-            align-items: flex-end; /* Align the stacked buttons to the right */
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.375rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .capacity-section {
+            padding: 1rem;
         }
     }
 </style>
@@ -58,25 +252,25 @@
     <div class="row">
         {% for event in events %}
         <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-0">{{ event.name }}</h5>
-                            <div class="mt-1">
-                                <span class="badge bg-primary">
+            <div class="event-card h-100">
+                <div class="event-card-header">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h3 class="event-title">{{ event.name }}</h3>
+                            <div class="event-badges">
+                                <span class="event-badge">
                                     <i class="bi bi-calendar-event"></i>
                                     {{ event.date }}
                                 </span>
-                                <span class="badge bg-info">
+                                <span class="event-badge info">
                                     <i class="bi bi-hash"></i>
-                                    Code: {{ event.event_code }}
+                                    {{ event.event_code }}
                                 </span>
                             </div>
                         </div>
                         <div class="event-actions">
                             <a href="{{ url_for('events.manage_invitees', event_id=event._id) }}" class="btn btn-outline-primary btn-sm">
-                                <i class="bi bi-people"></i><span class="btn-label"> Manage Invitees</span>
+                                <i class="bi bi-people"></i><span class="btn-label"> Manage</span>
                             </a>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editEventModal-{{ event._id }}">
                                 <i class="bi bi-pencil"></i><span class="btn-label"> Edit</span>
@@ -90,7 +284,7 @@
                     </div>
                 </div>
 
-                <div class="card-body">
+                <div class="event-card-body">
                     {% set confirmed = event.invitees|selectattr("status", "equalto", "YES")|list|length %}
                     {% set invited = event.invitees|selectattr("status", "equalto", "invited")|list|length %}
                     {% set pending = event.invitees|selectattr("status", "equalto", "pending")|list|length %}
@@ -98,13 +292,16 @@
                     {% set expired = event.invitees|selectattr("status", "equalto", "EXPIRED")|list|length %}
                     {% set error = event.invitees|selectattr("status", "equalto", "ERROR")|list|length %}
 
-                    <h6 class="card-subtitle mb-2 text-muted">Event Capacity</h6>
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>{{ confirmed }} confirmed of {{ event.capacity }} total spots</span>
-                            <span>{{ ((confirmed / event.capacity) * 100)|round }}% Full</span>
+                    <div class="capacity-section">
+                        <div class="capacity-header">
+                            <i class="bi bi-bar-chart"></i>
+                            Event Capacity
                         </div>
-                        <div class="progress" style="height: 25px;">
+                        <div class="capacity-stats">
+                            <span><strong>{{ confirmed }}</strong> confirmed of <strong>{{ event.capacity }}</strong> spots</span>
+                            <span class="text-primary font-weight-bold">{{ ((confirmed / event.capacity) * 100)|round }}% Full</span>
+                        </div>
+                        <div class="capacity-progress">
                             {% set confirmed_percent = (confirmed / event.capacity * 100)|round %}
                             {% set invited_percent = (invited / event.capacity * 100)|round %}
 
@@ -113,8 +310,8 @@
                                  style="width:{{ confirmed_percent }}%;"
                                  data-bs-toggle="tooltip"
                                  title="{{ confirmed }} Confirmed">
-                                {% if confirmed_percent > 10 %}
-                                    <small>{{ confirmed }} Confirmed</small>
+                                {% if confirmed_percent > 15 %}
+                                    <small class="text-white font-weight-medium">{{ confirmed }} Confirmed</small>
                                 {% endif %}
                             </div>
 
@@ -123,55 +320,52 @@
                                  style="width:{{ invited_percent }}%;"
                                  data-bs-toggle="tooltip"
                                  title="{{ invited }} Pending Response">
-                                {% if invited_percent > 10 %}
-                                    <small>{{ invited }} Pending</small>
+                                {% if invited_percent > 15 %}
+                                    <small class="text-white font-weight-medium">{{ invited }} Pending</small>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <div class="d-flex justify-content-between border-bottom py-1">
-                                <span>In Queue:</span>
-                                <strong>{{ pending }}</strong>
-                            </div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">In Queue</span>
+                            <span class="stat-value">{{ pending }}</span>
                         </div>
-                        <div class="col-6">
-                            <div class="d-flex justify-content-between border-bottom py-1">
-                                <span>Declined:</span>
-                                <strong>{{ declined }}</strong>
-                            </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Declined</span>
+                            <span class="stat-value">{{ declined }}</span>
                         </div>
-                        <div class="col-6">
-                            <div class="d-flex justify-content-between border-bottom py-1">
-                                <span>Expired:</span>
-                                <strong>{{ expired }}</strong>
-                            </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Expired</span>
+                            <span class="stat-value">{{ expired }}</span>
                         </div>
-                        <div class="col-6">
-                            <div class="d-flex justify-content-between border-bottom py-1">
-                                <span>Failed:</span>
-                                <strong class="{% if error > 0 %}text-danger{% endif %}">
-                                    {{ error }}
-                                </strong>
-                            </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Failed</span>
+                            <span class="stat-value {% if error > 0 %}danger{% endif %}">{{ error }}</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="card-footer bg-transparent">
-                    <small class="text-muted">
+                <div class="event-card-footer">
+                    <div class="expiry-info">
                         <i class="bi bi-clock"></i>
-                        Invitations expire after {{ event.invitation_expiry_hours }} hours
-                    </small>
+                        <span>Invitations expire after <strong>{{ event.invitation_expiry_hours }} hours</strong></span>
+                    </div>
                 </div>
             </div>
         </div>
         {% else %}
         <div class="col-12">
-            <div class="alert alert-info">
-                No events created yet. Click "Create Event" to get started.
+            <div class="empty-state">
+                <div class="empty-state-icon">
+                    <i class="bi bi-calendar-x"></i>
+                </div>
+                <h4>No events created yet</h4>
+                <p class="text-muted mb-4">Get started by creating your first event to manage invitations and RSVPs.</p>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createEventModal">
+                    <i class="bi bi-plus-circle"></i> Create Your First Event
+                </button>
             </div>
         </div>
         {% endfor %}

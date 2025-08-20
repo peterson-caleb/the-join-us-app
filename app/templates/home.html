@@ -1,26 +1,265 @@
 {% extends "base.html" %}
 
+{% block extra_css %}
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        padding: 4rem 0;
+        margin-top: -56px;
+        padding-top: 8rem;
+        border-radius: 0 0 2rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="%23e0f2fe"><polygon points="0,100 1000,0 1000,100"/></svg>') no-repeat bottom center;
+        background-size: 100% 50px;
+        pointer-events: none;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.375rem;
+        color: #475569;
+        font-weight: 400;
+        margin-bottom: 3rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .dashboard-card {
+        background: white;
+        border: none;
+        border-radius: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        position: relative;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .dashboard-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #0ea5e9, #3b82f6);
+    }
+
+    .dashboard-card.contacts::before {
+        background: linear-gradient(90deg, #64748b, #475569);
+    }
+
+    .card-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem auto;
+        font-size: 2.5rem;
+        color: white;
+        background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+    }
+
+    .card-icon.contacts {
+        background: linear-gradient(135deg, #64748b, #475569);
+    }
+
+    .dashboard-card-body {
+        padding: 3rem;
+        text-align: center;
+    }
+
+    .dashboard-card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-card-text {
+        color: #64748b;
+        font-size: 1.125rem;
+        line-height: 1.7;
+        margin-bottom: 2rem;
+    }
+
+    .dashboard-btn {
+        padding: 0.875rem 2rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        border: none;
+        font-size: 1rem;
+    }
+
+    .dashboard-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dashboard-btn.primary {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7);
+        color: white;
+    }
+
+    .dashboard-btn.secondary {
+        background: linear-gradient(135deg, #64748b, #475569);
+        color: white;
+    }
+
+    .features-section {
+        padding: 4rem 0;
+    }
+
+    .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+        color: #0ea5e9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 1.5rem auto;
+    }
+
+    .feature-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1rem;
+    }
+
+    .feature-text {
+        color: #64748b;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.125rem;
+        }
+
+        .dashboard-card-body {
+            padding: 2rem;
+        }
+
+        .hero-section {
+            padding: 3rem 0;
+            padding-top: 6rem;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container text-center mt-5">
-    <h1>Welcome to Join Us</h1>
-    <p class="lead">Your all-in-one platform for managing event invitations with ease.</p>
-    <div class="row mt-4">
+<div class="hero-section">
+    <div class="container text-center">
+        <h1 class="hero-title">Welcome to Join Us</h1>
+        <p class="hero-subtitle">Your all-in-one platform for managing event invitations with intelligent RSVP automation and priority queuing.</p>
+    </div>
+</div>
+
+<div class="container" style="margin-top: -2rem;">
+    <div class="row g-4 mb-5">
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Manage Events</h5>
-                    <p class="card-text">Create and manage events, send invitations, and track RSVPs.</p>
-                    <a href="/events" class="btn btn-primary">Go to Events</a>
+            <div class="dashboard-card">
+                <div class="dashboard-card-body">
+                    <div class="card-icon">
+                        <i class="bi bi-calendar-event"></i>
+                    </div>
+                    <h3 class="dashboard-card-title">Manage Events</h3>
+                    <p class="dashboard-card-text">Create events with capacity management, automated invitation queuing, and real-time RSVP tracking.</p>
+                    <a href="/events" class="dashboard-btn primary">
+                        <i class="bi bi-arrow-right"></i>
+                        Go to Events
+                    </a>
                 </div>
             </div>
         </div>
         <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Master Contact List</h5>
-                    <p class="card-text">Manage your contacts and organize them with tags.</p>
-                    <a href="/master-list" class="btn btn-secondary">Go to Contacts</a>
+            <div class="dashboard-card contacts">
+                <div class="dashboard-card-body">
+                    <div class="card-icon contacts">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h3 class="dashboard-card-title">Master Contact List</h3>
+                    <p class="dashboard-card-text">Organize your contacts with tags, track message history, and manage your invitation lists efficiently.</p>
+                    <a href="/master-list" class="dashboard-btn secondary">
+                        <i class="bi bi-arrow-right"></i>
+                        Go to Contacts
+                    </a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="features-section">
+        <div class="row text-center">
+            <div class="col-12 mb-5">
+                <h2>How It Works</h2>
+                <p class="lead text-muted">Intelligent event management with automated priority queuing</p>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4 text-center">
+                <div class="feature-icon">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+                <h4 class="feature-title">Create Events</h4>
+                <p class="feature-text">Set up events with capacity limits, dates, and automatic invitation expiry timers.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon">
+                    <i class="bi bi-send"></i>
+                </div>
+                <h4 class="feature-title">Smart Invitations</h4>
+                <p class="feature-text">Automatically send invitations based on capacity and manage waiting queues intelligently.</p>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="feature-icon">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <h4 class="feature-title">Track RSVPs</h4>
+                <p class="feature-text">Monitor responses in real-time with detailed analytics and automated follow-ups.</p>
             </div>
         </div>
     </div>
