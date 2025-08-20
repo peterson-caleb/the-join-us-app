@@ -5,8 +5,10 @@
   "workspaceFolder": "/workspaces/rsvp-priority",
   "forwardPorts": [5000],
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    }
   },
-  "postCreateCommand": "echo 'Codespace is ready!'"
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && echo 'Codespace is ready!'"
 }
-
