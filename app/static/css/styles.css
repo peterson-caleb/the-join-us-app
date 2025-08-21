@@ -581,6 +581,21 @@ p {
   border-color: var(--danger-500);
 }
 
+/* --- ADD THESE NEW STYLES --- */
+.btn-outline-info {
+  border: 2px solid var(--primary-500);
+  color: var(--primary-500);
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn-outline-info:hover {
+  background: var(--primary-500);
+  color: white;
+  border-color: var(--primary-500);
+}
+/* --- END OF NEW STYLES --- */
+
 /* Form Enhancements */
 .form-control {
   border: 2px solid var(--gray-300);
