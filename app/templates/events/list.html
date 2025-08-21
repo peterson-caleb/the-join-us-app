@@ -294,6 +294,11 @@
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editEventModal-{{ event._id }}">
                                 <i class="bi bi-pencil"></i><span class="btn-label"> Edit</span>
                             </button>
+                            <form action="{{ url_for('events.duplicate_event', event_id=event._id) }}" method="POST" style="display: inline;">
+                                <button type="submit" class="btn btn-outline-info btn-sm" title="Duplicate Event">
+                                    <i class="bi bi-copy"></i><span class="btn-label"> Duplicate</span>
+                                </button>
+                            </form>
                             <form action="{{ url_for('events.delete_event', event_id=event._id) }}" method="POST" onsubmit="return confirm('Delete {{ event.name }}? This cannot be undone.');">
                                 <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete Event">
                                     <i class="bi bi-trash"></i>
@@ -490,6 +495,22 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
+    
+    // Check if we should auto-open an edit modal after duplication
+    const urlParams = new URLSearchParams(window.location.search);
+    const editEventId = urlParams.get('edit_event');
+    if (editEventId) {
+        const editModal = document.getElementById('editEventModal-' + editEventId);
+        if (editModal) {
+            const modal = new bootstrap.Modal(editModal);
+            modal.show();
+        }
+        // Clean up the URL parameter
+        urlParams.delete('edit_event');
+        const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        const newSearch = urlParams.toString();
+        window.history.replaceState({}, document.title, newUrl + (newSearch ? '?' + newSearch : ''));
+    }
 });
 
 function togglePastEvents(showPast) {

@@ -171,6 +171,34 @@ def retry_invitee(event_id, invitee_id):
         flash(message, 'error')
     return redirect(url_for('events.manage_invitees', event_id=event_id))
 
+@bp.route('/events/<event_id>/duplicate', methods=['POST'])
+@login_required
+def duplicate_event(event_id):
+    """Duplicate an existing event."""
+    try:
+        event = event_service.get_event(event_id)
+        if not event:
+            flash('Event not found.', 'error')
+            return redirect(url_for('events.manage_events'))
+        
+        # Create duplicate event data without invitees
+        duplicate_data = {
+            'name': f"COPY - {event.name}",
+            'date': event.date.strftime('%Y-%m-%d') if hasattr(event.date, 'strftime') else event.date,
+            'capacity': event.capacity,
+            'details': event.details or ''
+        }
+        
+        # Create the duplicate event
+        new_event_id = event_service.create_event(duplicate_data)
+        
+        flash('Event duplicated successfully!', 'success')
+        return redirect(url_for('events.manage_events') + f'?edit_event={new_event_id}')
+        
+    except Exception as e:
+        flash(f'Error duplicating event: {str(e)}', 'error')
+        return redirect(url_for('events.manage_events'))
+
 @bp.route('/events/<event_id>/delete', methods=['POST'])
 @login_required
 def delete_event(event_id):
