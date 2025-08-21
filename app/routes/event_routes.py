@@ -25,12 +25,37 @@ def manage_events():
             flash(f'Error creating event: {str(e)}', 'error')
         return redirect(url_for('events.manage_events'))
     
+    show_past = request.args.get('show_past', 'false').lower() == 'true'
     events = event_service.get_events()
+    
+    now = datetime.now(pytz.UTC)
+    today = now.date()
+    
+    # Filter events based on show_past parameter
+    if not show_past:
+        filtered_events = []
+        for event in events:
+            event_date = event.get('date')
+            if isinstance(event_date, str):
+                try:
+                    event_date_obj = datetime.strptime(event_date, '%Y-%m-%d').date()
+                    if event_date_obj >= today:
+                        filtered_events.append(event)
+                except ValueError:
+                    # If date parsing fails, include the event to be safe
+                    filtered_events.append(event)
+            elif isinstance(event_date, datetime):
+                if event_date.date() >= today:
+                    filtered_events.append(event)
+            else:
+                # Include events with invalid dates to be safe
+                filtered_events.append(event)
+        events = filtered_events
+    
     for event in events:
         event['_id'] = str(event['_id'])
     
-    now = datetime.now(pytz.UTC)
-    return render_template('events/list.html', events=events, now=now)
+    return render_template('events/list.html', events=events, now=now, show_past=show_past)
 
 @bp.route('/events/<event_id>/edit', methods=['POST'])
 @login_required

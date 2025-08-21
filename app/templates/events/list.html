@@ -253,6 +253,21 @@
         </div>
     </div>
 
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-end">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="showPastEvents" 
+                           {% if show_past %}checked{% endif %}
+                           onchange="togglePastEvents(this.checked)">
+                    <label class="form-check-label" for="showPastEvents">
+                        <i class="bi bi-calendar-event me-1"></i>Show past events
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row">
         {% for event in events %}
         <div class="col-md-6 mb-4">
@@ -460,5 +475,15 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
 });
+
+function togglePastEvents(showPast) {
+    const url = new URL(window.location);
+    if (showPast) {
+        url.searchParams.set('show_past', 'true');
+    } else {
+        url.searchParams.delete('show_past');
+    }
+    window.location.href = url.toString();
+}
 </script>
 {% endblock %}
