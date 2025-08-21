@@ -186,7 +186,8 @@ def duplicate_event(event_id):
             'name': f"COPY - {event.name}",
             'date': event.date.strftime('%Y-%m-%d') if hasattr(event.date, 'strftime') else event.date,
             'capacity': event.capacity,
-            'details': event.details or ''
+            'details': event.details or '',
+            'automation_status': 'paused'
         }
         
         # Create the duplicate event
