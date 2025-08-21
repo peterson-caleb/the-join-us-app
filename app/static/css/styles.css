@@ -60,6 +60,11 @@
   --danger-800: #991b1b;
   --danger-900: #7f1d1d;
 
+  /* --- NEW ACCENT COLOR --- */
+  --accent-400: #a78bfa;
+  --accent-500: #8b5cf6;
+  --accent-600: #7c3aed;
+
   /* Neutral Colors */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -581,7 +586,6 @@ p {
   border-color: var(--danger-500);
 }
 
-/* --- ADD THESE NEW STYLES --- */
 .btn-outline-info {
   border: 2px solid var(--primary-500);
   color: var(--primary-500);
@@ -593,6 +597,20 @@ p {
   background: var(--primary-500);
   color: white;
   border-color: var(--primary-500);
+}
+
+/* --- ADD THESE NEW STYLES --- */
+.btn-outline-accent {
+  border: 2px solid var(--accent-500);
+  color: var(--accent-500);
+  background: transparent;
+  box-shadow: none;
+}
+
+.btn-outline-accent:hover {
+  background: var(--accent-500);
+  color: white;
+  border-color: var(--accent-500);
 }
 /* --- END OF NEW STYLES --- */
 

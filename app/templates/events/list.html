@@ -279,7 +279,13 @@
                             <div class="event-badges">
                                 <span class="event-badge">
                                     <i class="bi bi-calendar-event"></i>
-                                    {{ event.date }}
+                                    {# --- MODIFICATION START --- #}
+                                    {% if event.date %}
+                                        {{ event.date.strftime('%b %d, %Y') }}
+                                    {% else %}
+                                        No Date Set
+                                    {% endif %}
+                                    {# --- MODIFICATION END --- #}
                                 </span>
                                 <span class="event-badge info">
                                     <i class="bi bi-hash"></i>
@@ -288,7 +294,8 @@
                             </div>
                         </div>
                         <div class="event-actions">
-                            <a href="{{ url_for('events.manage_invitees', event_id=event._id) }}" class="btn btn-outline-primary btn-sm">
+                            {# --- MODIFICATION: Changed button class --- #}
+                            <a href="{{ url_for('events.manage_invitees', event_id=event._id) }}" class="btn btn-outline-accent btn-sm">
                                 <i class="bi bi-people"></i><span class="btn-label"> Manage</span>
                             </a>
                             <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#editEventModal-{{ event._id }}">
@@ -456,7 +463,8 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Date</label>
-                        <input type="date" class="form-control" name="date" value="{{ event.date }}" required min="{{ now.strftime('%Y-%m-%d') }}">
+                        {# --- MODIFICATION: Format date for input value --- #}
+                        <input type="date" class="form-control" name="date" value="{{ event.date.strftime('%Y-%m-%d') if event.date else '' }}" required min="{{ now.strftime('%Y-%m-%d') }}">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Capacity</label>
