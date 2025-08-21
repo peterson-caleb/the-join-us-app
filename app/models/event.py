@@ -8,10 +8,11 @@ class Event:
     """
     Event model representing a single event in the RSVP system.
     """
-    def __init__(self, name, date, capacity, invitation_expiry_hours=24):
+    def __init__(self, name, date, capacity, invitation_expiry_hours=24, details=""):
         self.name = name
         self.date = date
         self.capacity = capacity
+        self.details = details
         self.invitees = []
         self.created_at = datetime.utcnow()
         self.event_code = self._generate_event_code()
@@ -49,7 +50,8 @@ class Event:
             name=data['name'],
             date=event_date, # Use the converted datetime object
             capacity=data['capacity'],
-            invitation_expiry_hours=invitation_expiry_hours
+            invitation_expiry_hours=invitation_expiry_hours,
+            details=data.get('details', "")
         )
         event.invitees = data.get('invitees', [])
         event.created_at = data.get('created_at', datetime.utcnow())
@@ -68,6 +70,7 @@ class Event:
             "name": self.name,
             "date": date_str,
             "capacity": self.capacity,
+            "details": self.details,
             "invitees": self.invitees,
             "created_at": self.created_at,
             "event_code": self.event_code,

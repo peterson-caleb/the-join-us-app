@@ -417,6 +417,14 @@
                             Maximum number of confirmed attendees allowed
                         </div>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Details</label>
+                        <textarea class="form-control" name="details" rows="3" 
+                                  placeholder="Additional information about the event (optional)"></textarea>
+                        <div class="form-text">
+                            This will be shown to invitees on the RSVP page
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -451,6 +459,14 @@
                         <input type="number" class="form-control" name="capacity" value="{{ event.capacity }}" required min="{{ confirmed if confirmed > 0 else 1 }}">
                         <div class="form-text">
                             Maximum number of attendees. Currently {{ confirmed }} confirmed.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Details</label>
+                        <textarea class="form-control" name="details" rows="3" 
+                                  placeholder="Additional information about the event (optional)">{{ event.details or '' }}</textarea>
+                        <div class="form-text">
+                            This will be shown to invitees on the RSVP page
                         </div>
                     </div>
                 </div>

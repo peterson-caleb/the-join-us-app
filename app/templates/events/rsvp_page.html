@@ -18,6 +18,13 @@
                     <p class="lead">
                         The event is on <strong>{{ event.date }}</strong>. Will you be attending?
                     </p>
+                    {% if event.details %}
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Event Details:</strong>
+                        <div class="mt-2">{{ event.details }}</div>
+                    </div>
+                    {% endif %}
                     <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
                         <a href="{{ url_for('events.submit_rsvp', token=token, response='YES') }}" class="btn btn-success btn-lg px-4 gap-3">
                             <i class="bi bi-check-circle"></i> Yes, I'll be there!

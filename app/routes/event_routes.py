@@ -17,7 +17,8 @@ def manage_events():
             event_data = {
                 'name': request.form['name'],
                 'date': request.form['date'],
-                'capacity': int(request.form['capacity'])
+                'capacity': int(request.form['capacity']),
+                'details': request.form.get('details', '')
             }
             event_service.create_event(event_data)
             flash('Event created successfully!', 'success')
@@ -70,7 +71,8 @@ def edit_event(event_id):
         event_data = {
             'name': request.form['name'],
             'date': request.form['date'],
-            'capacity': int(request.form['capacity'])
+            'capacity': int(request.form['capacity']),
+            'details': request.form.get('details', '')
         }
         
         event_service.update_event(event_id, event_data)
