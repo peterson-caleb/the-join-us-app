@@ -56,6 +56,135 @@
             font-weight: 500;
         }
         /* --- END OF NEW STYLES --- */
+
+        /* --- ENHANCED MODAL STYLES --- */
+        .modal {
+            z-index: 1055; /* Above alerts */
+        }
+
+        .modal-dialog {
+            margin: 3rem auto;
+            max-width: 540px;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+                        0 10px 10px -5px rgba(0, 0, 0, 0.04),
+                        0 0 0 1px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.5rem 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 1.25rem 2rem;
+            gap: 0.75rem;
+        }
+
+        .modal-backdrop {
+            background-color: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Modal form styling */
+        .modal .form-label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal .form-control {
+            border: 1.5px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal .form-control:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .modal .form-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        /* Modal button improvements */
+        .modal-footer .btn {
+            font-weight: 500;
+            padding: 0.625rem 1.25rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .modal-footer .btn-secondary {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        .modal-footer .btn-secondary:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #475569;
+        }
+
+        .modal-footer .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border: none;
+        }
+
+        .modal-footer .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+        }
+
+        /* Close button styling */
+        .btn-close {
+            padding: 0.75rem;
+            margin: -0.25rem -0.25rem -0.25rem auto;
+            opacity: 0.6;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        /* Responsive modal adjustments */
+        @media (max-width: 576px) {
+            .modal-dialog {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+            
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+            }
+        }
+        /* --- END ENHANCED MODAL STYLES --- */
     </style>
     
     {% block extra_css %}{% endblock %}

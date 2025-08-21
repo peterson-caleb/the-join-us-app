@@ -397,7 +397,7 @@
 </div>
 
 <div class="modal fade" id="createEventModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="{{ url_for('events.manage_events') }}" method="POST">
                 <div class="modal-header">
@@ -442,7 +442,7 @@
 
 {% for event in events %}
 <div class="modal fade" id="editEventModal-{{ event._id }}" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="{{ url_for('events.edit_event', event_id=event._id) }}" method="POST">
                 <div class="modal-header">
