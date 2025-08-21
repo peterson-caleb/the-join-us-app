@@ -61,7 +61,22 @@
                                     <small class="text-muted">({{ invitee.phone }})</small>
                                 </div>
                                 <div>
-                                    {# --- THIS IS THE NEW PART --- #}
+                                    {# --- MODIFICATION START: ADD MANUAL RSVP AND RETRY BUTTONS --- #}
+                                    {% if invitee.status in ['pending', 'invited'] %}
+                                    <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="status" value="YES">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Manually Confirm">
+                                            <i class="bi bi-check-circle"></i>
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
+                                        <input type="hidden" name="status" value="NO">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Manually Decline">
+                                            <i class="bi bi-x-circle"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+
                                     {% if invitee.status == 'ERROR' %}
                                     <form action="{{ url_for('events.retry_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-warning me-2">
@@ -69,10 +84,11 @@
                                         </button>
                                     </form>
                                     {% endif %}
-                                    {# --- END OF NEW PART --- #}
+                                    
                                     <form action="{{ url_for('events.delete_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove {{ invitee.name }}?')">Remove</button>
                                     </form>
+                                    {# --- MODIFICATION END --- #}
                                 </div>
                             </div>
                         </div>

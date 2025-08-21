@@ -55,14 +55,12 @@ def manage_events():
     
     for event in events:
         event['_id'] = str(event['_id'])
-        # --- MODIFICATION START ---
         # Ensure date is a datetime object for formatting in Jinja
         if isinstance(event.get('date'), str):
             try:
                 event['date'] = datetime.strptime(event['date'], '%Y-%m-%d')
             except ValueError:
                 event['date'] = None # Handle invalid date strings
-        # --- MODIFICATION END ---
     
     return render_template('events/list.html', events=events, now=now, show_past=show_past)
 
@@ -92,6 +90,26 @@ def edit_event(event_id):
         flash(f'Error updating event: {str(e)}', 'error')
         
     return redirect(url_for('events.manage_events'))
+    
+# --- NEW ROUTE START ---
+@bp.route('/events/<event_id>/manual_rsvp/<invitee_id>', methods=['POST'])
+@login_required
+def manual_rsvp(event_id, invitee_id):
+    """Handles the host manually setting an invitee's RSVP status."""
+    new_status = request.form.get('status')
+    if not new_status:
+        flash('No status provided.', 'error')
+        return redirect(url_for('events.manage_invitees', event_id=event_id))
+
+    success, message = event_service.manual_rsvp(event_id, invitee_id, new_status)
+    
+    if success:
+        flash(message, 'success')
+    else:
+        flash(message, 'error')
+        
+    return redirect(url_for('events.manage_invitees', event_id=event_id))
+# --- NEW ROUTE END ---
 
 @bp.route('/events/<event_id>/invitees', methods=['GET'])
 @login_required

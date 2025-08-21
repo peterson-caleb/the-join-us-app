@@ -68,7 +68,35 @@ class EventService:
                 {"$set": update_fields}
             )
             
-    # ... (the rest of the file is unchanged) ...
+    # --- NEW METHOD START ---
+    def manual_rsvp(self, event_id, invitee_id, new_status):
+        """
+        Allows a host to manually set an invitee's RSVP status.
+        Triggers a confirmation SMS if the status is set to 'YES'.
+        """
+        event = self.get_event(event_id)
+        if not event:
+            return False, "Event not found."
+
+        invitee = next((i for i in event.invitees if str(i.get('_id')) == invitee_id), None)
+        if not invitee:
+            return False, "Invitee not found in this event."
+
+        # Update the status in the database
+        success = self.update_invitee_status(event_id, ObjectId(invitee_id), new_status)
+        if not success:
+            return False, "Failed to update status in the database."
+
+        # If confirmed, send the confirmation SMS to the guest
+        if new_status == 'YES':
+            self.sms_service.send_confirmation(invitee, event.to_dict())
+            message = f"Successfully confirmed {invitee.get('name')}. A confirmation SMS has been sent to them."
+        else:
+            message = f"Successfully marked {invitee.get('name')} as declined."
+            
+        return True, message
+    # --- NEW METHOD END ---
+
     def process_expired_invitations(self):
         self.logger.info("Starting expired invitations check (process_expired_invitations)")
         now = self.get_current_time()
