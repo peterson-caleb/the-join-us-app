@@ -33,20 +33,29 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Current Invitees (Drag to Re-prioritize)</h5>
-                    <div>
+                    {# --- MODIFICATION START --- #}
+                    <h5 class="mb-0">
+                        Current Invitees
                         {% if event.automation_status == 'paused' %}
-                            <span class="badge bg-warning me-2">Automation Paused</span>
-                            <form action="{{ url_for('events.toggle_automation', event_id=event._id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-success"><i class="bi bi-play-fill"></i> Start Automated Invites</button>
-                            </form>
+                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-medium ms-2">Paused</span>
                         {% else %}
-                            <span class="badge bg-success me-2">Automation Active</span>
-                            <form action="{{ url_for('events.toggle_automation', event_id=event._id) }}" method="POST" class="d-inline">
-                                <button type="submit" class="btn btn-warning"><i class="bi bi-pause-fill"></i> Pause Automated Invites</button>
-                            </form>
+                            <span class="badge rounded-pill bg-success-subtle text-success-emphasis fw-medium ms-2">Active</span>
                         {% endif %}
+                    </h5>
+                    <div>
+                        <form action="{{ url_for('events.toggle_automation', event_id=event._id) }}" method="POST" class="d-inline">
+                            {% if event.automation_status == 'paused' %}
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Start Automation
+                                </button>
+                            {% else %}
+                                <button type="submit" class="btn btn-warning btn-sm">
+                                    <i class="bi bi-pause-circle-fill me-1"></i> Pause Automation
+                                </button>
+                            {% endif %}
+                        </form>
                     </div>
+                    {# --- MODIFICATION END --- #}
                 </div>
                 <div class="card-body">
                     <div class="invitee-list" id="inviteeList">
