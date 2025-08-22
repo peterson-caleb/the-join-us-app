@@ -13,6 +13,24 @@
     .status-pending { background-color: #6c757d; } .status-invited { background-color: #0d6efd; }
     .status-yes { background-color: #198754; } .status-no { background-color: #dc3545; }
     .status-expired { background-color: #ffc107; } .status-error { background-color: #dc3545; }
+    
+    /* --- NEW STYLES FOR DROPDOWN ACTIONS --- */
+    .dropdown-item-form {
+        padding: 0;
+    }
+    .dropdown-item-form .btn {
+        width: 100%;
+        text-align: left;
+        padding: var(--bs-dropdown-item-padding-y) var(--bs-dropdown-item-padding-x);
+        border: none;
+        background: none;
+        color: var(--bs-dropdown-link-color);
+        border-radius: 0;
+    }
+    .dropdown-item-form .btn:hover {
+        color: var(--bs-dropdown-link-hover-color);
+        background-color: var(--bs-dropdown-link-hover-bg);
+    }
 </style>
 {% endblock %}
 
@@ -33,7 +51,6 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    {# --- MODIFICATION START --- #}
                     <h5 class="mb-0">
                         Current Invitees
                         {% if event.automation_status == 'paused' %}
@@ -55,7 +72,6 @@
                             {% endif %}
                         </form>
                     </div>
-                    {# --- MODIFICATION END --- #}
                 </div>
                 <div class="card-body">
                     <div class="invitee-list" id="inviteeList">
@@ -69,34 +85,53 @@
                                     <strong>{{ invitee.name }}</strong>
                                     <small class="text-muted">({{ invitee.phone }})</small>
                                 </div>
-                                <div>
-                                    {% if invitee.status in ['pending', 'invited'] %}
-                                    <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
-                                        <input type="hidden" name="status" value="YES">
-                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Manually Confirm">
-                                            <i class="bi bi-check-circle"></i>
-                                        </button>
-                                    </form>
-                                    <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
-                                        <input type="hidden" name="status" value="NO">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Manually Decline">
-                                            <i class="bi bi-x-circle"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
+                                
+                                {# --- MODIFICATION START: Replace individual buttons with an actions dropdown --- #}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        {% if invitee.status in ['pending', 'invited'] %}
+                                        <li>
+                                            <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form">
+                                                <input type="hidden" name="status" value="YES">
+                                                <button type="submit" class="btn dropdown-item">
+                                                    <i class="bi bi-check-circle me-2"></i>Manually Confirm
+                                                </button>
+                                            </form>
+                                        </li>
+                                        <li>
+                                            <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form">
+                                                <input type="hidden" name="status" value="NO">
+                                                <button type="submit" class="btn dropdown-item">
+                                                    <i class="bi bi-x-circle me-2"></i>Manually Decline
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% endif %}
 
-                                    {% if invitee.status == 'ERROR' %}
-                                    <form action="{{ url_for('events.retry_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-warning me-2">
-                                            <i class="bi bi-arrow-clockwise"></i> Retry
-                                        </button>
-                                    </form>
-                                    {% endif %}
-                                    
-                                    <form action="{{ url_for('events.delete_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove {{ invitee.name }}?')">Remove</button>
-                                    </form>
+                                        {% if invitee.status == 'ERROR' %}
+                                        <li>
+                                            <form action="{{ url_for('events.retry_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form">
+                                                <button type="submit" class="btn dropdown-item">
+                                                    <i class="bi bi-arrow-clockwise me-2"></i>Retry Invitation
+                                                </button>
+                                            </form>
+                                        </li>
+                                        {% endif %}
+                                        
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="{{ url_for('events.delete_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form" onsubmit="return confirm('Remove {{ invitee.name }}?')">
+                                                <button type="submit" class="btn dropdown-item text-danger">
+                                                    <i class="bi bi-trash me-2"></i>Remove Invitee
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
                                 </div>
+                                {# --- MODIFICATION END --- #}
                             </div>
                         </div>
                         {% endfor %}
