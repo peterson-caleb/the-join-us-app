@@ -30,14 +30,10 @@ def manage():
 @login_required
 def switch(group_id):
     try:
-        # --- TEMPORARY LOGGING ---
-        print(f"--- 5. SWITCH route hit. Attempting to switch user '{current_user.id}' to group '{group_id}' ---", file=sys.stderr)
         success = user_service.switch_active_group(current_user.id, group_id)
         if success:
-            print("--- 6. switch_active_group reported SUCCESS ---", file=sys.stderr)
             flash('Switched to a different group.', 'success')
         else:
-            print("--- 6. switch_active_group reported FAILURE ---", file=sys.stderr)
             flash('Could not switch group.', 'error')
     except PermissionError as e:
         flash(str(e), 'error')
@@ -45,8 +41,6 @@ def switch(group_id):
         flash(f'An error occurred: {e}', 'error')
 
     return redirect(url_for('home'))
-
-# --- NEW ROUTES for invitations ---
 
 @bp.route('/<group_id>/invite', methods=['POST'])
 @login_required

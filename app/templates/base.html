@@ -86,14 +86,8 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-people-fill"></i>
-                                {{ log_to_console("--- 7. TEMPLATE check. current_user.active_group_id_str is: " ~ current_user.active_group_id_str) }}
-                                
                                 {% set active_group_name = 'No Active Group' %}
-                                {% for group in user_groups %}
-                                    {% if group._id|string == current_user.active_group_id_str %}
-                                        {% set active_group_name = group.name %}
-                                    {% endif %}
-                                {% endfor %}
+                                {% for group in user_groups %}{% if group._id|string == current_user.active_group_id_str %}{% set active_group_name = group.name %}{% endif %}{% endfor %}
                                 {{ active_group_name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">

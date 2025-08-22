@@ -72,23 +72,28 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        # --- TEMPORARY LOGGING ---
-        print(f"--- 1. user_loader RUNNING for user_id: {user_id} ---", file=sys.stderr)
-        user = user_service.get_user(user_id)
-        if user:
-            print(f"--- 2. User object LOADED. Active Group ID: {user.active_group_id} ---", file=sys.stderr)
-        return user
+        return user_service.get_user(user_id)
     
     @app.before_request
     def load_user_context():
         g.user_groups = []
         g.pending_invitations = []
         if current_user.is_authenticated:
-            # --- TEMPORARY LOGGING ---
-            print(f"--- 3. before_request RUNNING for user: {current_user.username} ---", file=sys.stderr)
-            print(f"--- 4. current_user.active_group_id is: {current_user.active_group_id} ---", file=sys.stderr)
             g.user_groups = user_service.get_user_groups_with_details(current_user)
             g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
+
+            # --- SELF-HEALING LOGIC ---
+            # If the user has an active group ID set...
+            if current_user.active_group_id:
+                # ...check if they are actually a member of that group.
+                current_membership_ids = [group['_id'] for group in g.user_groups]
+                if current_user.active_group_id not in current_membership_ids:
+                    # If not, their active group is orphaned. Automatically switch them.
+                    new_active_group = g.user_groups[0]['_id'] if g.user_groups else None
+                    user_service.switch_active_group(current_user.id, str(new_active_group) if new_active_group else None)
+                    # We don't need to reload the user here, Flask-Login will do it on the next request.
+                    app.logger.warning(f"Corrected orphaned active_group_id for user {current_user.id}")
+
 
     @app.context_processor
     def inject_global_variables():
@@ -145,13 +150,5 @@ def create_app(config_class=Config):
                     app.logger.info(f"Admin user '{admin_username}' created automatically.")
                 except ValueError as e:
                     app.logger.error(f"Could not auto-create admin user: {e}")
-
-    # Helper for template logging
-    @app.context_processor
-    def utility_processor():
-        def log_to_console(message):
-            print(message, file=sys.stderr)
-            return '' # Return empty string so it doesn't render in the HTML
-        return dict(log_to_console=log_to_console)
     
     return app
