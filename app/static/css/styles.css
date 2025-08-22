@@ -455,6 +455,26 @@ p {
   color: var(--primary-700);
 }
 
+/* --- NEW GLOBAL STYLE for dropdown actions --- */
+.dropdown-item-form {
+    padding: 0;
+}
+.dropdown-item-form .btn {
+    width: 100%;
+    text-align: left;
+    padding: var(--bs-dropdown-item-padding-y) var(--bs-dropdown-item-padding-x);
+    border: none;
+    background: none;
+    color: var(--bs-dropdown-link-color);
+    border-radius: 0;
+    font-weight: var(--font-medium);
+}
+.dropdown-item-form .btn:hover {
+    color: var(--bs-dropdown-link-hover-color);
+    background-color: var(--bs-dropdown-link-hover-bg);
+}
+
+
 /* Card Enhancements */
 .card {
   border: none;
@@ -599,7 +619,6 @@ p {
   border-color: var(--primary-500);
 }
 
-/* --- ADD THESE NEW STYLES --- */
 .btn-outline-accent {
   border: 2px solid var(--accent-500);
   color: var(--accent-500);
@@ -612,7 +631,6 @@ p {
   color: white;
   border-color: var(--accent-500);
 }
-/* --- END OF NEW STYLES --- */
 
 /* Form Enhancements */
 .form-control {
