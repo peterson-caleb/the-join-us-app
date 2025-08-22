@@ -3,28 +3,29 @@
 This document outlines the planned features and strategic direction for the Join Us application. The roadmap is organized into phases: foundational work that enables future growth, high-impact features that improve the core user experience, and long-term ideas for future expansion.
 
 ---
-## 🚀 Now: Building the Foundation for Growth
+## ✅ Completed: Foundational Work
 
-This phase is focused on evolving the application from a single-user system into a scalable, multi-tenant platform. These changes are foundational for all future growth.
+This phase focused on evolving the application from a single-user system into a scalable, multi-tenant platform. These changes are foundational for all future growth.
 
 ### 1. Multi-Tenancy with "Groups"
-The single most important next step is to allow different users or organizations to use the app in complete isolation from one another.
+Allowed different users or organizations to use the app in complete isolation from one another.
 
-* **Data Scoping**: Introduce a `group_id` to the `events` and `contacts` collections to ensure every piece of data belongs to a specific group.
-* **User & Group Management**: Create a new `groups` collection and update the `users` model so that users can create, own, and be invited to different groups.
-* **"Group-Aware" Logic**: Update all service-layer queries to only fetch and modify data for the user's currently active group. Admins will retain the ability to see all data across all groups.
-* **UI Group Switcher**: Add a dropdown menu to the main navigation, allowing users who belong to multiple groups to easily switch between them. 
+* **Data Scoping**: Introduced a `group_id` to the `events` and `contacts` collections.
+* **User & Group Management**: Created a `groups` collection and updated the `users` model so that users can create, own, and be invited to different groups. Implemented a group invitation system.
+* **"Group-Aware" Logic**: Updated all service-layer queries to only fetch and modify data for the user's currently active group.
+* **Admin Oversight**: Added a system panel for admins to view all groups and join them for support.
+* **UI Group Switcher**: Added a dropdown menu to the main navigation for switching between groups.
 
 ### 2. Per-Group SMS Quotas & Guardrails
-Alongside multi-tenancy, we must implement intelligent, group-specific limits to ensure fair use and platform stability.
+Implemented intelligent, group-specific limits to ensure fair use and platform stability.
 
-* **Per-Group Quotas**: Each `group` document will have its own configurable SMS limits (e.g., `sms_daily_limit`). The system's rate-limiter will check against the specific group's quota before sending a message.
-* **Recipient Spam Protection**: A new system-wide guardrail will be added to prevent any single phone number from receiving an excessive number of messages in a short period, protecting both the recipient's experience and the platform's reputation with carriers.
+* **Per-Group Quotas**: Each `group` document now has its own configurable SMS limits.
+* **Recipient Spam Protection**: A new system-wide guardrail prevents any single phone number from receiving an excessive number of messages in a short period.
 
 ---
-## 🌱 Next: Enhancing the Core Experience
+## 🚀 Now: Enhancing the Core Experience
 
-Once the multi-tenant foundation is in place, the focus will shift to adding high-value features that dramatically improve the workflow for both event hosts and their guests.
+With the multi-tenant foundation in place, the focus now shifts to adding high-value features that dramatically improve the workflow for both event hosts and their guests.
 
 ### Guest Experience Improvements
 * **"Plus One" / Guest Count Support**: Allow invitees to RSVP for more than one person, with the confirmed count accurately deducted from the event's capacity.
