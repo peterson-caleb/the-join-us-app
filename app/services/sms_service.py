@@ -12,7 +12,7 @@ class SMSService:
         self.base_url = base_url
         self.message_log_service = message_log_service
         
-        # Guardrail settings
+        # Guardrail settings (will be replaced by per-group limits)
         self.enabled = enabled
         self.hourly_limit = hourly_limit
         self.daily_limit = daily_limit
@@ -26,53 +26,42 @@ class SMSService:
     def _check_rate_limits(self):
         """
         Checks if sending an SMS would violate hourly or daily limits.
-        Returns a tuple: (can_send: bool, reason: str).
+        NOTE: This is the GLOBAL rate-limiter. The next step will make this group-aware.
         """
-        # Check hourly limit
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)
         hourly_count = self.message_log_service.get_sms_count_since(one_hour_ago)
         if hourly_count >= self.hourly_limit:
-            reason = f"Hourly SMS limit reached ({hourly_count}/{self.hourly_limit})."
-            return False, reason
+            return False, f"Hourly SMS limit reached ({hourly_count}/{self.hourly_limit})."
 
-        # Check daily limit
         one_day_ago = datetime.utcnow() - timedelta(hours=24)
         daily_count = self.message_log_service.get_sms_count_since(one_day_ago)
         if daily_count >= self.daily_limit:
-            reason = f"Daily SMS limit reached ({daily_count}/{self.daily_limit})."
-            return False, reason
+            return False, f"Daily SMS limit reached ({daily_count}/{self.daily_limit})."
 
         return True, "Limits OK"
 
-    def _send(self, to_number, message_body, contact_id=None, event_id=None):
-        """
-        Private method to handle the actual sending logic including all guardrails.
-        Returns a tuple: (success: bool, reason: str or None).
-        """
-        log_kwargs = {'contact_id': contact_id, 'event_id': event_id}
+    def _send(self, to_number, message_body, contact_id=None, event_id=None, group_id=None):
+        """Private method to handle the actual sending logic including all guardrails."""
+        log_kwargs = {'contact_id': contact_id, 'event_id': event_id, 'group_id': group_id}
         
-        # 1. Master switch check
         if not self.enabled:
             reason = 'SMS sending is disabled globally.'
             logging.info(f"SMS sending is disabled. [Simulated Send] To: {to_number}")
             self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason, **log_kwargs)
-            return True, None # Return success to not break app flow
+            return True, None
 
-        # 2. Rate limit check
         can_send, reason = self._check_rate_limits()
         if not can_send:
             logging.error(f"SMS BLOCKED: Rate limit exceeded. Reason: {reason}")
             self.message_log_service.log_message(to_number, message_body, status='blocked', error_message=reason, **log_kwargs)
             return False, reason
 
-        # 3. Twilio client check
         if not self.client:
             reason = 'Twilio client not initialized.'
             logging.warning(f"SMS not sent to {to_number} ({reason}).")
             self.message_log_service.log_message(to_number, message_body, status='failed', error_message=reason, **log_kwargs)
             return False, reason
 
-        # 4. Attempt to send
         try:
             message = self.client.messages.create(
                 to=to_number,
@@ -96,16 +85,16 @@ class SMSService:
         """Sends an RSVP invitation SMS."""
         rsvp_url = f"{self.base_url}/rsvp/{invitee['rsvp_token']}"
         message_body = f"Hi {invitee['name']}, you're invited to {event['name']}! Please RSVP here: {rsvp_url}"
-        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'), group_id=event.get('group_id'))
 
     def send_confirmation(self, invitee, event):
         """Sends a confirmation SMS to a guest who RSVP'd 'YES'."""
         event_date_str = event.get('date').strftime('%A, %B %d') if isinstance(event.get('date'), datetime) else 'the event date'
         message_body = f"Thanks for confirming, {invitee['name']}! We've got you down for {event['name']} on {event_date_str}. See you there!"
-        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'), group_id=event.get('group_id'))
 
     def send_reminder(self, invitee, event):
         """Sends a reminder SMS to a guest with a pending invitation."""
         rsvp_url = f"{self.base_url}/rsvp/{invitee['rsvp_token']}"
         message_body = f"Hi {invitee['name']}, just a friendly reminder to RSVP for {event['name']}. Please respond here: {rsvp_url}"
-        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'))
+        return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'), group_id=event.get('group_id'))

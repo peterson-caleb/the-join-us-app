@@ -9,14 +9,11 @@ import pytz
 import secrets
 
 class EventService:
-    # ... (init, logging, and other methods are unchanged) ...
-    def __init__(self, db, sms_service=None, invitation_expiry_hours=24):
+    def __init__(self, db, invitation_expiry_hours=24):
         self.db = db
         self.events_collection = db['events']
-        self.sms_service = sms_service
         self.invitation_expiry_hours = invitation_expiry_hours
         self.timezone = pytz.timezone('UTC')
-        
         self.logger = self._setup_logging()
 
     def _setup_logging(self):
@@ -38,15 +35,14 @@ class EventService:
 
     def get_current_time(self):
         return datetime.now(self.timezone)
-        
-    def _send_invitations(self, event, invitees_to_send):
+
+    def _send_invitations(self, event, invitees_to_send, sms_service):
         now = self.get_current_time()
         
         for invitee in invitees_to_send:
             invitee['rsvp_token'] = secrets.token_urlsafe(16)
             
-            # MODIFIED: Unpack the new tuple return value
-            success, reason = self.sms_service.send_invitation(invitee, event.to_dict())
+            success, reason = sms_service.send_invitation(invitee, event.to_dict())
             
             update_fields = {
                 "invitees.$.rsvp_token": invitee['rsvp_token']
@@ -55,11 +51,10 @@ class EventService:
             if success:
                 update_fields["invitees.$.status"] = "invited"
                 update_fields["invitees.$.invited_at"] = now
-                update_fields["invitees.$.error_message"] = None # Clear any previous error
+                update_fields["invitees.$.error_message"] = None
                 self.logger.info(f"Successfully sent invitation to {invitee['phone']}")
             else:
                 update_fields["invitees.$.status"] = "ERROR"
-                # MODIFIED: Store the failure reason in the database
                 update_fields["invitees.$.error_message"] = reason 
                 self.logger.error(f"Failed to send invitation to {invitee['phone']}: {reason}")
 
@@ -68,13 +63,8 @@ class EventService:
                 {"$set": update_fields}
             )
             
-    # --- NEW METHOD START ---
-    def manual_rsvp(self, event_id, invitee_id, new_status):
-        """
-        Allows a host to manually set an invitee's RSVP status.
-        Triggers a confirmation SMS if the status is set to 'YES'.
-        """
-        event = self.get_event(event_id)
+    def manual_rsvp(self, group_id, event_id, invitee_id, new_status, sms_service):
+        event = self.get_event(group_id, event_id)
         if not event:
             return False, "Event not found."
 
@@ -82,49 +72,31 @@ class EventService:
         if not invitee:
             return False, "Invitee not found in this event."
 
-        # Update the status in the database
         success = self.update_invitee_status(event_id, ObjectId(invitee_id), new_status)
         if not success:
             return False, "Failed to update status in the database."
 
-        # If confirmed, send the confirmation SMS to the guest
         if new_status == 'YES':
-            self.sms_service.send_confirmation(invitee, event.to_dict())
+            sms_service.send_confirmation(invitee, event.to_dict())
             message = f"Successfully confirmed {invitee.get('name')}. A confirmation SMS has been sent to them."
         else:
             message = f"Successfully marked {invitee.get('name')} as declined."
             
         return True, message
-    # --- NEW METHOD END ---
 
+    # SCHEDULER METHODS (NOT group-aware, they run system-wide)
     def process_expired_invitations(self):
         self.logger.info("Starting expired invitations check (process_expired_invitations)")
         now = self.get_current_time()
         expiry_threshold = now - timedelta(hours=self.invitation_expiry_hours)
-
         self.events_collection.update_many(
-            {
-                "automation_status": "active",
-                "invitees": {
-                    "$elemMatch": {
-                        "status": "invited",
-                        "invited_at": {"$lt": expiry_threshold}
-                    }
-                }
-            },
-            {
-                "$set": {
-                    "invitees.$[elem].status": "EXPIRED",
-                    "invitees.$[elem].expired_at": now
-                }
-            },
-            array_filters=[
-                {"elem.status": "invited", "elem.invited_at": {"$lt": expiry_threshold}}
-            ]
+            {"automation_status": "active", "invitees": {"$elemMatch": {"status": "invited", "invited_at": {"$lt": expiry_threshold}}}},
+            {"$set": {"invitees.$[elem].status": "EXPIRED", "invitees.$[elem].expired_at": now}},
+            array_filters=[{"elem.status": "invited", "elem.invited_at": {"$lt": expiry_threshold}}]
         )
         self.logger.info("Completed expired invitations check.")
 
-    def manage_event_capacity(self):
+    def manage_event_capacity(self, sms_service):
         self.logger.info("Starting event capacity management")
         events = self.events_collection.find({"automation_status": "active"})
         for event_data in events:
@@ -134,7 +106,7 @@ class EventService:
                 if available_spots > 0:
                     next_invitees = self._get_next_invitees(event, available_spots)
                     if next_invitees:
-                        self._send_invitations(event, next_invitees)
+                        self._send_invitations(event, next_invitees, sms_service)
             except Exception as e:
                 self.logger.error(f"Error managing capacity for event {event_data.get('_id')}: {str(e)}")
 
@@ -152,7 +124,7 @@ class EventService:
         self.logger.info("Running send_pending_reminders job (no action taken).")
         pass
     
-    def process_rsvp_from_url(self, token, response):
+    def process_rsvp_from_url(self, token, response, sms_service):
         event, invitee = self.find_event_and_invitee_by_token(token)
         if not event or not invitee: return False, "This invitation link is invalid."
         if invitee['status'] not in ['invited', 'ERROR']: return True, "You have already responded."
@@ -162,17 +134,14 @@ class EventService:
         success = self.update_invitee_status(event._id, invitee['_id'], response)
         
         if success and response == 'YES':
-            self.sms_service.send_confirmation(invitee, event.to_dict())
+            sms_service.send_confirmation(invitee, event.to_dict())
 
         return success, f"Thank you! Your response for {event.name} has been recorded."
 
     def update_invitee_status(self, event_id, invitee_id, status):
         result = self.events_collection.update_one(
             {"_id": ObjectId(event_id), "invitees._id": ObjectId(invitee_id)},
-            {"$set": {
-                "invitees.$.status": status,
-                "invitees.$.responded_at": self.get_current_time()
-            }}
+            {"$set": {"invitees.$.status": status, "invitees.$.responded_at": self.get_current_time()}}
         )
         return result.modified_count > 0
 
@@ -183,28 +152,33 @@ class EventService:
         invitee = next((i for i in event.invitees if i.get("rsvp_token") == token), None)
         return event, invitee
 
-    def get_event(self, event_id):
-        event_data = self.events_collection.find_one({"_id": ObjectId(event_id)})
+    # --- GROUP-AWARE CRUD METHODS ---
+    def get_event(self, group_id, event_id):
+        event_data = self.events_collection.find_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
         return Event.from_dict(event_data) if event_data else None
 
-    def get_events(self):
-        return list(self.events_collection.find())
+    def get_events(self, group_id):
+        return list(self.events_collection.find({"group_id": ObjectId(group_id)}))
 
-    def create_event(self, event_data):
+    def create_event(self, event_data, group_id):
+        event_data['group_id'] = group_id
         event = Event.from_dict(event_data, invitation_expiry_hours=self.invitation_expiry_hours)
         result = self.events_collection.insert_one(event.to_dict())
         return str(result.inserted_id)
 
-    def update_event(self, event_id, event_data):
-        self.events_collection.update_one({"_id": ObjectId(event_id)}, {"$set": event_data})
-        return self.get_event(event_id)
+    def update_event(self, group_id, event_id, event_data):
+        self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
+            {"$set": event_data}
+        )
+        return self.get_event(group_id, event_id)
 
-    def delete_event(self, event_id):
-        result = self.events_collection.delete_one({"_id": ObjectId(event_id)})
+    def delete_event(self, group_id, event_id):
+        result = self.events_collection.delete_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
         return result.deleted_count > 0
 
-    def add_invitees(self, event_id, invitees):
-        event = self.get_event(event_id)
+    def add_invitees(self, group_id, event_id, invitees):
+        event = self.get_event(group_id, event_id)
         if not event:
             raise ValueError("Event not found")
         current_contact_ids = {str(i.get('contact_id')) for i in event.invitees}
@@ -226,16 +200,19 @@ class EventService:
                 newly_added_count += 1
         if newly_added_count > 0:
             self.events_collection.update_one(
-                {"_id": ObjectId(event_id)},
+                {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
                 {"$push": {"invitees": {"$each": new_invitees_to_add}}}
             )
         return newly_added_count
 
-    def delete_invitee(self, event_id, invitee_id):
-        self.events_collection.update_one({"_id": ObjectId(event_id)}, {"$pull": {"invitees": {"_id": ObjectId(invitee_id)}}})
+    def delete_invitee(self, group_id, event_id, invitee_id):
+        self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
+            {"$pull": {"invitees": {"_id": ObjectId(invitee_id)}}}
+        )
 
-    def reorder_invitees(self, event_id, invitee_order):
-        event = self.get_event(event_id)
+    def reorder_invitees(self, group_id, event_id, invitee_order):
+        event = self.get_event(group_id, event_id)
         if not event: raise ValueError("Event not found")
         invitees_dict = {str(i['_id']): i for i in event.invitees}
         new_invitees = []
@@ -244,47 +221,37 @@ class EventService:
                 invitee = invitees_dict[invitee_id]
                 invitee['priority'] = i
                 new_invitees.append(invitee)
-        self.update_event(event_id, {"invitees": new_invitees})
+        self.update_event(group_id, event_id, {"invitees": new_invitees})
         return new_invitees
     
-    def retry_invitation(self, event_id, invitee_id):
-        """
-        Finds a specific invitee marked as 'ERROR' and re-attempts to send their invitation.
-        """
-        # Find the event and the specific invitee in one query for efficiency
+    def retry_invitation(self, group_id, event_id, invitee_id, sms_service):
         event_data = self.events_collection.find_one(
-            {"_id": ObjectId(event_id), "invitees._id": ObjectId(invitee_id)},
-            {"invitees.$": 1}  # Projection to get only the matched invitee
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id), "invitees._id": ObjectId(invitee_id)},
+            {"invitees.$": 1}
         )
         if not event_data or not event_data.get('invitees'):
             return False, "Invitee or event not found."
 
         invitee = event_data['invitees'][0]
-        
-        # We need the full event object to pass to the SMS service
-        event = self.get_event(event_id)
+        event = self.get_event(group_id, event_id)
 
         if invitee.get('status') != 'ERROR':
             return False, f"Cannot retry for {invitee.get('name')}. Their status is not 'ERROR'."
 
-        # Generate a new token for the new invitation link
         invitee['rsvp_token'] = secrets.token_urlsafe(16)
         
-        # Call the SMS service to resend the invitation
-        success, reason = self.sms_service.send_invitation(invitee, event.to_dict())
+        success, reason = sms_service.send_invitation(invitee, event.to_dict())
 
-        # Prepare the database update based on the result
         update_fields = {"invitees.$.rsvp_token": invitee['rsvp_token']}
         if success:
             update_fields["invitees.$.status"] = "invited"
             update_fields["invitees.$.invited_at"] = self.get_current_time()
-            update_fields["invitees.$.error_message"] = None  # Clear the old error
+            update_fields["invitees.$.error_message"] = None
             message = f"Invitation for {invitee.get('name')} was successfully resent."
         else:
-            update_fields["invitees.$.error_message"] = reason  # Update with the new error
+            update_fields["invitees.$.error_message"] = reason
             message = f"Failed to resend invitation for {invitee.get('name')}: {reason}"
 
-        # Apply the update to the database
         self.events_collection.update_one(
             {"_id": ObjectId(event_id), "invitees._id": ObjectId(invitee_id)},
             {"$set": update_fields}
