@@ -6,9 +6,9 @@ from functools import wraps
 
 bp = Blueprint('contacts', __name__)
 
-# --- NEW: Helper to ensure a group is active ---
+# --- Helper to ensure a group is active ---
 def require_active_group(f):
-    @wraps(f)
+    @wraps(f) # --- THIS LINE IS THE FIX ---
     @login_required
     def decorated_function(*args, **kwargs):
         if not current_user.active_group_id:
@@ -20,9 +20,6 @@ def require_active_group(f):
 # --- Public route, does NOT require login ---
 @bp.route('/join', methods=['GET', 'POST'])
 def join_list():
-    # This feature is complex with multi-tenancy. For now, we disable it.
-    # A decision needs to be made: which group does a public signup go to?
-    # This will be addressed in a future implementation phase.
     flash("Public sign-ups are temporarily disabled.", "info")
     return render_template('contacts/join.html', disabled=True)
 

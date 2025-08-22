@@ -5,11 +5,13 @@ from datetime import datetime
 from bson import ObjectId
 from flask_login import login_required, current_user
 import pytz
+from functools import wraps # --- ADD THIS IMPORT ---
 
 bp = Blueprint('events', __name__)
 
-# --- NEW: Helper to ensure a group is active ---
+# --- Helper to ensure a group is active ---
 def require_active_group(f):
+    @wraps(f) # --- ADD THIS LINE ---
     @login_required
     def decorated_function(*args, **kwargs):
         if not current_user.active_group_id:
