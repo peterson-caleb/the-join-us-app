@@ -24,6 +24,7 @@ def create_initial_admin():
             return
         
         try:
+            # The create_user method now handles creating the default group automatically
             user = user_service_instance.create_user(
                 username=username,
                 email=email,
@@ -32,6 +33,7 @@ def create_initial_admin():
                 registration_method='admin_created'
             )
             print(f"\nAdmin user created successfully!")
+            print(f"A default group named '{username}'s Group' was also created for you.")
             print(f"Username: {user.username}")
             print(f"Email: {user.email}")
             

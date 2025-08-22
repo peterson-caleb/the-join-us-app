@@ -8,7 +8,7 @@ class Event:
     """
     Event model representing a single event in the RSVP system.
     """
-    def __init__(self, name, date, capacity, invitation_expiry_hours=24, details=""):
+    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=24, details=""):
         self.name = name
         self.date = date
         self.capacity = capacity
@@ -19,6 +19,9 @@ class Event:
         self.invitation_expiry_hours = invitation_expiry_hours
         self.automation_status = 'paused'
         self._id = None
+        # --- NEW: Field for multi-tenancy ---
+        self.group_id = group_id
+
 
     def _generate_event_code(self):
         """Generate a unique event code based on event name"""
@@ -32,26 +35,23 @@ class Event:
     def from_dict(cls, data, invitation_expiry_hours=24):
         """Create an event instance from dictionary data"""
         
-        # --- THIS IS THE FIX ---
-        # Convert date string from database/form into a real datetime object
         event_date = data.get('date')
         if isinstance(event_date, str):
             try:
-                # Assuming the date is in 'YYYY-MM-DD' format
                 event_date = datetime.strptime(event_date, '%Y-%m-%d')
             except (ValueError, TypeError):
-                # Handle cases where the date might be invalid or already a datetime object
-                event_date = datetime.now() # Fallback to now
+                event_date = datetime.now()
         elif not isinstance(event_date, datetime):
-             event_date = datetime.now() # Fallback for other invalid types
-        # --- END OF FIX ---
+                 event_date = datetime.now()
 
         event = cls(
             name=data['name'],
-            date=event_date, # Use the converted datetime object
+            date=event_date,
             capacity=data['capacity'],
             invitation_expiry_hours=invitation_expiry_hours,
-            details=data.get('details', "")
+            details=data.get('details', ""),
+            # --- NEW: Field for multi-tenancy ---
+            group_id=data.get('group_id')
         )
         event.invitees = data.get('invitees', [])
         event.created_at = data.get('created_at', datetime.utcnow())
@@ -63,7 +63,6 @@ class Event:
     def to_dict(self):
         """Convert event to dictionary for storage"""
         
-        # Ensure date is a string in 'YYYY-MM-DD' format for database storage
         date_str = self.date.strftime('%Y-%m-%d') if isinstance(self.date, datetime) else self.date
 
         return {
@@ -75,5 +74,7 @@ class Event:
             "created_at": self.created_at,
             "event_code": self.event_code,
             "invitation_expiry_hours": self.invitation_expiry_hours,
-            "automation_status": self.automation_status
+            "automation_status": self.automation_status,
+            # --- NEW: Field for multi-tenancy ---
+            "group_id": self.group_id
         }
