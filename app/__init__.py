@@ -17,7 +17,7 @@ registration_code_service = None
 task_scheduler = None
 message_log_service = None
 dashboard_service = None
-group_service = None # ADD THIS LINE
+group_service = None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -39,25 +39,25 @@ def create_app(config_class=Config):
     from .services.registration_code_service import RegistrationCodeService
     from .services.message_log_service import MessageLogService
     from .services.dashboard_service import DashboardService
-    from .services.group_service import GroupService # ADD THIS IMPORT
+    from .services.group_service import GroupService
     from .scheduler import TaskScheduler
     
     message_log_service = MessageLogService(mongo.db)
     dashboard_service = DashboardService(mongo.db)
-    group_service = GroupService(mongo.db) # ADD THIS LINE
+    group_service = GroupService(mongo.db)
     
+    # --- THIS BLOCK IS CORRECTED ---
+    # The SMSService no longer takes hourly/daily limits as arguments.
+    # It reads them directly from the app config when needed.
     sms_service = SMSService(
         sid=app.config['TWILIO_SID'],
         auth_token=app.config['TWILIO_AUTH_TOKEN'],
         twilio_phone=app.config['TWILIO_PHONE'],
         message_log_service=message_log_service,
         base_url=app.config['BASE_URL'],
-        enabled=app.config['SMS_ENABLED'],
-        hourly_limit=app.config['SMS_HOURLY_LIMIT'],
-        daily_limit=app.config['SMS_DAILY_LIMIT']
+        enabled=app.config['SMS_ENABLED']
     )
     
-    # Pass db and config, but not other services to prevent circular dependencies
     event_service = EventService(
         db=mongo.db,
         invitation_expiry_hours=app.config['INVITATION_EXPIRY_HOURS']
@@ -69,7 +69,6 @@ def create_app(config_class=Config):
     if app.config.get('SCHEDULER_ENABLED', True):
         if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             task_scheduler = TaskScheduler.get_instance()
-            # Pass sms_service to the scheduler initializer
             task_scheduler.init_app(app, event_service, sms_service) 
             app.logger.info('Task scheduler initialized and started.')
 
@@ -77,7 +76,6 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return user_service.get_user(user_id)
     
-    # --- NEW: Inject user's groups into the template context ---
     @app.before_request
     def load_user_groups():
         g.user_groups = []
@@ -97,14 +95,14 @@ def create_app(config_class=Config):
     from .routes.sms_routes import bp as sms_bp
     from .routes.auth_routes import bp as auth_bp
     from .routes.dashboard_routes import bp as dashboard_bp
-    from .routes.group_routes import bp as group_bp # ADD THIS IMPORT
+    from .routes.group_routes import bp as group_bp
     
     app.register_blueprint(event_bp)
     app.register_blueprint(contact_bp)
     app.register_blueprint(sms_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
-    app.register_blueprint(group_bp) # ADD THIS LINE
+    app.register_blueprint(group_bp)
 
     @app.route('/')
     @login_required
