@@ -12,9 +12,8 @@ def view_dashboard():
         flash('You do not have permission to access the dashboard.', 'error')
         return redirect(url_for('home'))
 
-    # --- MODIFICATION START ---
     period = request.args.get('period', '7')
-    details_type = request.args.get('details') # Check if details are requested
+    details_type = request.args.get('details') 
 
     try:
         period_days = 0 if period == 'all' else int(period)
@@ -23,7 +22,10 @@ def view_dashboard():
 
     stats = dashboard_service.get_stats(period_days=period_days)
     
-    details_data = None
+    # --- THIS IS THE FIX ---
+    details_data = [] # Initialize with an empty list instead of None
+    # --- END OF FIX ---
+
     if details_type:
         if details_type == 'messages_sent':
             details_data = dashboard_service.get_sent_messages_details(period_days)
@@ -39,4 +41,3 @@ def view_dashboard():
         details_data=details_data,
         show_modal_for=details_type
     )
-    # --- MODIFICATION END ---
