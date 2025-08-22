@@ -11,7 +11,7 @@ class MessageLogService:
         self.logs_collection.create_index([("event_id", 1)])
         self.logs_collection.create_index([("timestamp", -1)])
         self.logs_collection.create_index([("group_id", 1)])
-        self.logs_collection.create_index([("to_number", 1), ("timestamp", -1)]) # Index for spam check
+        self.logs_collection.create_index([("to_number", 1), ("timestamp", -1)])
 
     def log_message(self, to_number, message_body, status, message_sid=None, error_message=None, contact_id=None, event_id=None, group_id=None):
         """Logs an SMS message attempt to the database."""
@@ -34,6 +34,14 @@ class MessageLogService:
         self.logs_collection.insert_one(log_entry)
         return log_entry
 
+    def get_sms_count_since(self, start_time):
+        """Counts all sent SMS messages on the platform since a given time."""
+        count = self.logs_collection.count_documents({
+            "timestamp": {"$gte": start_time},
+            "status": "sent"
+        })
+        return count
+
     def get_sms_count_for_group_since(self, group_id, start_time):
         """Counts sent SMS for a specific group since a given time."""
         count = self.logs_collection.count_documents({
@@ -48,7 +56,6 @@ class MessageLogService:
         count = self.logs_collection.count_documents({
             "timestamp": {"$gte": start_time},
             "to_number": to_number
-            # status doesn't matter, we count all attempts to a number
         })
         return count
 
