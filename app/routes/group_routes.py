@@ -1,6 +1,6 @@
 # app/routes/group_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required, current_user
+from flask_login import login_required, current_user, login_user
 from .. import group_service, user_service
 
 bp = Blueprint('groups', __name__, url_prefix='/groups')
@@ -16,6 +16,10 @@ def manage():
             try:
                 success = user_service.create_group_for_user(current_user.id, group_name)
                 if success:
+                    # Refresh the user object after creating a group
+                    refreshed_user = user_service.get_user(current_user.id)
+                    if refreshed_user:
+                        login_user(refreshed_user, fresh=False)
                     flash(f"Group '{group_name}' created and is now your active group.", 'success')
                 else:
                     flash('Could not create group.', 'error')
@@ -32,6 +36,10 @@ def switch(group_id):
     try:
         success = user_service.switch_active_group(current_user.id, group_id)
         if success:
+            # Refresh the user object in the session after switching groups
+            refreshed_user = user_service.get_user(current_user.id)
+            if refreshed_user:
+                login_user(refreshed_user, fresh=False)
             flash('Switched to a different group.', 'success')
         else:
             flash('Could not switch group.', 'error')
@@ -60,6 +68,10 @@ def invite_member(group_id):
 def accept_invitation(group_id):
     try:
         user_service.accept_group_invitation(current_user.id, group_id)
+        # Refresh the user object after accepting an invitation
+        refreshed_user = user_service.get_user(current_user.id)
+        if refreshed_user:
+            login_user(refreshed_user, fresh=False)
         flash("You have joined the group!", "success")
     except ValueError as e:
         flash(str(e), "error")
@@ -70,6 +82,10 @@ def accept_invitation(group_id):
 def decline_invitation(group_id):
     try:
         user_service.decline_group_invitation(current_user.id, group_id)
+        # Refresh the user object after declining an invitation
+        refreshed_user = user_service.get_user(current_user.id)
+        if refreshed_user:
+            login_user(refreshed_user, fresh=False)
         flash("Invitation declined.", "info")
     except ValueError as e:
         flash(str(e), "error")

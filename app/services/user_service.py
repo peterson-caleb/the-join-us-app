@@ -13,35 +13,30 @@ class UserService:
         self.users_collection.create_index('email', unique=True)
         self.users_collection.create_index('username', unique=True)
 
-    # (get_all_groups_with_owners, is_first_run, create_user, create_group_for_user remain the same)
-
     def switch_active_group(self, user_id, group_id):
         """Updates the user's active group. Handles None for group_id."""
         user = self.get_user(user_id)
         
-        # --- THIS LOGIC IS NOW MORE ROBUST ---
-        
         # If group_id is provided, verify the user is a member.
         if group_id:
-            is_member = any(gm['group_id'] == ObjectId(group_id) for gm in user.group_memberships)
+            is_member = any(str(gm['group_id']) == str(group_id) for gm in user.group_memberships)
             if not is_member:
                 raise PermissionError("User is not a member of this group.")
         
-        # Check if the state is already correct to avoid unnecessary DB calls.
-        if str(user.active_group_id) == str(group_id):
-            return True
-
         # Prepare the new ID for the database (could be ObjectId or None)
         new_active_id = ObjectId(group_id) if group_id else None
 
+        # Always update the database, even if values appear the same
+        # This ensures consistency between string and ObjectId comparisons
         result = self.users_collection.update_one(
             {'_id': ObjectId(user_id)},
             {'$set': {'active_group_id': new_active_id}}
         )
-        return result.modified_count > 0
+        
+        # Update the user object to return the refreshed state
+        user.active_group_id = new_active_id
+        return result.modified_count > 0 or True  # Return True even if no modification (already set)
 
-    # (All other methods remain the same)
-    
     def get_all_groups_with_owners(self):
         """Fetches all groups and enriches them with owner's username."""
         pipeline = [
@@ -120,7 +115,7 @@ class UserService:
         if not admin_user or not admin_user.is_admin:
             raise PermissionError("Only administrators can perform this action.")
         
-        is_member = any(gm['group_id'] == ObjectId(group_id_to_join) for gm in admin_user.group_memberships)
+        is_member = any(str(gm['group_id']) == str(group_id_to_join) for gm in admin_user.group_memberships)
         if is_member:
             return True
 
@@ -132,7 +127,7 @@ class UserService:
         return result.modified_count > 0
 
     def invite_user_to_group(self, inviter_user, invited_email, group_id):
-        is_owner = any(gm['group_id'] == ObjectId(group_id) and gm['role'] == 'owner' for gm in inviter_user.group_memberships)
+        is_owner = any(str(gm['group_id']) == str(group_id) and gm['role'] == 'owner' for gm in inviter_user.group_memberships)
         
         if not is_owner and not inviter_user.is_admin:
             raise PermissionError("Only group owners or administrators can invite new members.")
@@ -141,7 +136,7 @@ class UserService:
         if not invited_user:
             raise ValueError(f"No user found with the email: {invited_email}")
 
-        is_member = any(gm['group_id'] == ObjectId(group_id) for gm in invited_user.group_memberships)
+        is_member = any(str(gm['group_id']) == str(group_id) for gm in invited_user.group_memberships)
         if is_member:
             raise ValueError("This user is already a member of the group.")
         

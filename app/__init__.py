@@ -1,7 +1,7 @@
 # app/__init__.py
 from flask import Flask, render_template, g
 from flask_pymongo import PyMongo
-from flask_login import LoginManager, login_required, current_user
+from flask_login import LoginManager, login_required, current_user, login_user
 from .config import Config
 import logging
 from datetime import datetime
@@ -79,21 +79,25 @@ def create_app(config_class=Config):
         g.user_groups = []
         g.pending_invitations = []
         if current_user.is_authenticated:
+            # Always get fresh data from database for the current request
             g.user_groups = user_service.get_user_groups_with_details(current_user)
             g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
 
-            # --- SELF-HEALING LOGIC (IMPROVED) ---
+            # Self-healing logic: Check if active_group_id is still valid
             if current_user.active_group_id:
-                current_membership_ids = [group['_id'] for group in g.user_groups]
-                if current_user.active_group_id not in current_membership_ids:
-                    # Determine the new active group, which could be None if the user has no groups
+                current_membership_ids = [str(group['_id']) for group in g.user_groups]
+                if str(current_user.active_group_id) not in current_membership_ids:
+                    # The active group is no longer valid, fix it
                     new_active_group_id = g.user_groups[0]['_id'] if g.user_groups else None
                     
                     # Update the database
                     user_service.switch_active_group(current_user.id, new_active_group_id)
                     
-                    # *** THIS IS THE FIX: Update the user object in memory for the current request ***
-                    current_user.active_group_id = new_active_group_id
+                    # Refresh the user object in the session
+                    refreshed_user = user_service.get_user(current_user.id)
+                    if refreshed_user:
+                        # This updates the session with the fresh user object
+                        login_user(refreshed_user, fresh=False)
                     
                     app.logger.warning(f"Corrected orphaned active_group_id for user {current_user.id}")
 
@@ -105,7 +109,7 @@ def create_app(config_class=Config):
             'pending_invitations': g.get('pending_invitations', [])
         }
 
-    # Register blueprints (remains the same)
+    # Register blueprints
     from .routes.event_routes import bp as event_bp
     from .routes.contact_routes import bp as contact_bp
     from .routes.sms_routes import bp as sms_bp
@@ -127,6 +131,6 @@ def create_app(config_class=Config):
     def home():
         return render_template('home.html')
 
-    # (Error handlers and auto-admin creation remain the same)
+    # Error handlers remain the same...
     
     return app
