@@ -14,9 +14,6 @@ def manage():
             flash('Group name is required.', 'error')
         else:
             try:
-                # --- THIS LOGIC IS CORRECTED ---
-                # Call the new service method that handles both creating the group
-                # and adding the user as the owner.
                 success = user_service.create_group_for_user(current_user.id, group_name)
                 if success:
                     flash(f"Group '{group_name}' created and is now your active group.", 'success')
@@ -43,4 +40,39 @@ def switch(group_id):
     except Exception as e:
         flash(f'An error occurred: {e}', 'error')
 
+    return redirect(url_for('home'))
+
+# --- NEW ROUTES for invitations ---
+
+@bp.route('/<group_id>/invite', methods=['POST'])
+@login_required
+def invite_member(group_id):
+    email_to_invite = request.form.get('email')
+    try:
+        user_service.invite_user_to_group(current_user, email_to_invite, group_id)
+        flash(f"Invitation sent to {email_to_invite}.", "success")
+    except (ValueError, PermissionError) as e:
+        flash(str(e), "error")
+    except Exception:
+        flash("An unexpected error occurred.", "error")
+    return redirect(url_for('groups.manage'))
+
+@bp.route('/invitations/<group_id>/accept', methods=['POST'])
+@login_required
+def accept_invitation(group_id):
+    try:
+        user_service.accept_group_invitation(current_user.id, group_id)
+        flash("You have joined the group!", "success")
+    except ValueError as e:
+        flash(str(e), "error")
+    return redirect(url_for('groups.manage'))
+
+@bp.route('/invitations/<group_id>/decline', methods=['POST'])
+@login_required
+def decline_invitation(group_id):
+    try:
+        user_service.decline_group_invitation(current_user.id, group_id)
+        flash("Invitation declined.", "info")
+    except ValueError as e:
+        flash(str(e), "error")
     return redirect(url_for('home'))

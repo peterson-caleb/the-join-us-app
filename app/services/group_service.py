@@ -6,6 +6,7 @@ class GroupService:
     def __init__(self, db):
         self.db = db
         self.groups_collection = db['groups']
+        self.users_collection = db['users']
 
     def create_group(self, name, owner_id):
         """Creates a new group and returns its ID."""
@@ -18,34 +19,42 @@ class GroupService:
         group_data = self.groups_collection.find_one({"_id": ObjectId(group_id)})
         return Group.from_dict(group_data) if group_data else None
 
-    def get_groups_for_user(self, user_id):
-        """Retrieves all groups a user is a member of."""
-        user_object_id = ObjectId(user_id)
-        
+    # --- NEW METHOD for the admin panel ---
+    def get_all_groups_with_owners(self):
+        """Fetches all groups and enriches them with owner's username."""
         pipeline = [
             {
-                '$match': {
-                    'group_memberships.user_id': user_object_id
-                }
-            },
-            {
                 '$lookup': {
-                    'from': 'groups',
-                    'localField': 'group_memberships.group_id',
+                    'from': 'users',
+                    'localField': 'owner_id',
                     'foreignField': '_id',
-                    'as': 'group_details'
+                    'as': 'owner_details'
                 }
             },
             {
-                '$unwind': '$group_details'
+                '$unwind': {
+                    'path': '$owner_details',
+                    'preserveNullAndEmptyArrays': True # Keep group even if owner is deleted
+                }
             },
             {
-                '$replaceRoot': {
-                    'newRoot': '$group_details'
+                '$project': {
+                    'name': 1,
+                    'created_at': 1,
+                    'owner_id': 1,
+                    'owner_username': '$owner_details.username'
                 }
+            },
+            {
+                '$sort': {'created_at': -1}
             }
         ]
-        # This is a conceptual pipeline. For now, we query the user document directly.
-        # This will be simpler once group memberships are on the user object.
-        # The logic will be updated in UserService.
-        return [] # Placeholder, real logic will be in UserService
+        return list(self.groups_collection.aggregate(pipeline))
+        
+    def get_pending_invitations_for_user(self, user):
+        """Fetches full group details for a user's pending invitations."""
+        if not user or not user.group_invitations:
+            return []
+        
+        group_ids = user.group_invitations
+        return list(self.groups_collection.find({'_id': {'$in': group_ids}}))

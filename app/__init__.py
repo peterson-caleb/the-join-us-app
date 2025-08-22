@@ -46,9 +46,6 @@ def create_app(config_class=Config):
     dashboard_service = DashboardService(mongo.db)
     group_service = GroupService(mongo.db)
     
-    # --- THIS BLOCK IS CORRECTED ---
-    # The SMSService no longer takes hourly/daily limits as arguments.
-    # It reads them directly from the app config when needed.
     sms_service = SMSService(
         sid=app.config['TWILIO_SID'],
         auth_token=app.config['TWILIO_AUTH_TOKEN'],
@@ -77,16 +74,19 @@ def create_app(config_class=Config):
         return user_service.get_user(user_id)
     
     @app.before_request
-    def load_user_groups():
+    def load_user_context():
         g.user_groups = []
+        g.pending_invitations = []
         if current_user.is_authenticated:
             g.user_groups = user_service.get_user_groups_with_details(current_user)
+            g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
 
     @app.context_processor
     def inject_global_variables():
         return {
             'current_year': datetime.utcnow().year,
-            'user_groups': g.get('user_groups', [])
+            'user_groups': g.get('user_groups', []),
+            'pending_invitations': g.get('pending_invitations', [])
         }
 
     # Register blueprints
@@ -96,6 +96,7 @@ def create_app(config_class=Config):
     from .routes.auth_routes import bp as auth_bp
     from .routes.dashboard_routes import bp as dashboard_bp
     from .routes.group_routes import bp as group_bp
+    from .routes.admin_routes import bp as admin_bp # ADD THIS
     
     app.register_blueprint(event_bp)
     app.register_blueprint(contact_bp)
@@ -103,11 +104,13 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(group_bp)
+    app.register_blueprint(admin_bp) # ADD THIS
 
     @app.route('/')
     @login_required
     def home():
         return render_template('home.html')
+
 
     @app.errorhandler(401)
     def unauthorized(error):

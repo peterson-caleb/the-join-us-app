@@ -6,38 +6,42 @@
 <div class="container">
     <div class="row mb-4">
         <div class="col-md-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1>Manage Groups</h1>
-            </div>
-            <p class="text-muted">Switch between groups you belong to or create a new one.</p>
+            <h1>Manage Groups</h1>
+            <p class="text-muted">Switch between groups, invite members, or create a new group.</p>
         </div>
     </div>
 
     <div class="row">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Your Groups</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Your Groups</h5></div>
                 <div class="card-body">
                     {% if user_groups %}
-                    <ul class="list-group">
+                    <div class="list-group">
                         {% for group in user_groups %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">{{ group.name }}</h6>
-                                <small class="text-muted">Owner ID: {{ group.owner_id }}</small>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-0">{{ group.name }}</h6>
+                                    {% set is_owner = group.owner_id == current_user._id %}
+                                    <small class="text-muted">Your role: {{ 'Owner' if is_owner else 'Member' }}</small>
+                                </div>
+                                <div>
+                                    {% if group._id == current_user.active_group_id %}
+                                        <span class="badge bg-primary rounded-pill me-2">Active</span>
+                                    {% else %}
+                                        <a href="{{ url_for('groups.switch', group_id=group._id) }}" class="btn btn-sm btn-outline-primary me-2">Activate</a>
+                                    {% endif %}
+                                    {% if is_owner %}
+                                        <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#inviteModal-{{ group._id }}">
+                                            <i class="bi bi-person-plus"></i> Invite
+                                        </button>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% if current_user.active_group_id == group._id %}
-                            <span class="badge bg-primary rounded-pill">Active</span>
-                            {% else %}
-                            <a href="{{ url_for('groups.switch', group_id=group._id) }}" class="btn btn-sm btn-outline-primary">
-                                Switch to this Group
-                            </a>
-                            {% endif %}
-                        </li>
+                        </div>
                         {% endfor %}
-                    </ul>
+                    </div>
                     {% else %}
                     <div class="alert alert-info">You are not a member of any groups yet.</div>
                     {% endif %}
@@ -47,15 +51,12 @@
 
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Create a New Group</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Create a New Group</h5></div>
                 <div class="card-body">
                     <form action="{{ url_for('groups.manage') }}" method="POST">
                         <div class="mb-3">
                             <label for="name" class="form-label">Group Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required
-                                   placeholder="e.g., Family Events">
+                            <input type="text" class="form-control" id="name" name="name" required placeholder="e.g., Family Events">
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Create Group</button>
@@ -66,4 +67,32 @@
         </div>
     </div>
 </div>
+
+{% for group in user_groups %}
+    {% if group.owner_id == current_user._id %}
+    <div class="modal fade" id="inviteModal-{{ group._id }}" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form action="{{ url_for('groups.invite_member', group_id=group._id) }}" method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Invite Member to {{ group.name }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="email-{{ group._id }}" class="form-label">User's Email Address</label>
+                            <input type="email" class="form-control" id="email-{{ group._id }}" name="email" required placeholder="name@example.com">
+                            <div class="form-text">The user must already have an account on this platform.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Invitation</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
 {% endblock %}
