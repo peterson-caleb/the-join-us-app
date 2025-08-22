@@ -4,6 +4,9 @@
 
 {% block extra_css %}
 <style>
+    .stat-card-link {
+        text-decoration: none;
+    }
     .stat-card {
         background-color: #fff;
         border: 1px solid var(--gray-200);
@@ -12,9 +15,10 @@
         transition: all 0.2s ease-in-out;
         box-shadow: var(--shadow-sm);
     }
-    .stat-card:hover {
+    .stat-card-link:hover .stat-card {
         transform: translateY(-3px);
         box-shadow: var(--shadow-md);
+        border-color: var(--primary-300);
     }
     .stat-icon {
         font-size: 2rem;
@@ -70,44 +74,51 @@
     </div>
 
     <div class="row g-4">
+        {# --- MODIFICATION: Make cards clickable links --- #}
         <div class="col-md-3">
-            <div class="stat-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="stat-icon me-3">
-                        <i class="bi bi-send"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ stats.messages_sent }}</div>
-                        <div class="stat-label">Messages Sent</div>
+            <a href="{{ url_for('dashboard.view_dashboard', period=active_period, details='messages_sent') }}" class="stat-card-link">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon me-3">
+                            <i class="bi bi-send"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ stats.messages_sent }}</div>
+                            <div class="stat-label">Messages Sent</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="stat-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="stat-icon me-3" style="color: var(--success-600); background-color: var(--success-100);">
-                        <i class="bi bi-check-circle"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ stats.confirmed_rsvps }}</div>
-                        <div class="stat-label">Confirmed RSVPs</div>
+            <a href="{{ url_for('dashboard.view_dashboard', period=active_period, details='confirmed_rsvps') }}" class="stat-card-link">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon me-3" style="color: var(--success-600); background-color: var(--success-100);">
+                            <i class="bi bi-check-circle"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ stats.confirmed_rsvps }}</div>
+                            <div class="stat-label">Confirmed RSVPs</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
-            <div class="stat-card">
-                <div class="d-flex align-items-center mb-3">
-                    <div class="stat-icon me-3" style="color: var(--danger-600); background-color: var(--danger-100);">
-                        <i class="bi bi-x-circle"></i>
-                    </div>
-                    <div>
-                        <div class="stat-value">{{ stats.declined_rsvps }}</div>
-                        <div class="stat-label">Declined RSVPs</div>
+            <a href="{{ url_for('dashboard.view_dashboard', period=active_period, details='declined_rsvps') }}" class="stat-card-link">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="stat-icon me-3" style="color: var(--danger-600); background-color: var(--danger-100);">
+                            <i class="bi bi-x-circle"></i>
+                        </div>
+                        <div>
+                            <div class="stat-value">{{ stats.declined_rsvps }}</div>
+                            <div class="stat-label">Declined RSVPs</div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </a>
         </div>
         <div class="col-md-3">
             <div class="stat-card">
@@ -124,4 +135,78 @@
         </div>
     </div>
 </div>
+
+{# --- NEW: Add the Modal for displaying details --- #}
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detailsModalLabel">
+                    {% if show_modal_for == 'messages_sent' %}
+                        Details: Sent Messages
+                    {% elif show_modal_for == 'confirmed_rsvps' %}
+                        Details: Confirmed RSVPs
+                    {% elif show_modal_for == 'declined_rsvps' %}
+                        Details: Declined RSVPs
+                    {% endif %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                {% if show_modal_for == 'messages_sent' %}
+                                    <th>Recipient</th>
+                                    <th>Event</th>
+                                    <th>Timestamp</th>
+                                {% elif show_modal_for in ['confirmed_rsvps', 'declined_rsvps'] %}
+                                    <th>Guest Name</th>
+                                    <th>Event</th>
+                                    <th>Response Time</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in details_data %}
+                                <tr>
+                                {% if show_modal_for == 'messages_sent' %}
+                                    <td>{{ item.recipient_name or 'N/A' }}</td>
+                                    <td>{{ item.event_name or 'N/A' }}</td>
+                                    <td>{{ item.timestamp.strftime('%Y-%m-%d %H:%M') }} UTC</td>
+                                {% elif show_modal_for in ['confirmed_rsvps', 'declined_rsvps'] %}
+                                    <td>{{ item.guest_name }}</td>
+                                    <td>{{ item.event_name }}</td>
+                                    <td>{{ item.responded_at.strftime('%Y-%m-%d %H:%M') }} UTC</td>
+                                {% endif %}
+                                </tr>
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center">No data available for this period.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+{# --- NEW: Add script to auto-open the modal --- #}
+{% if show_modal_for %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        detailsModal.show();
+    });
+</script>
+{% endif %}
 {% endblock %}
