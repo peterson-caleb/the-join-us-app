@@ -14,15 +14,19 @@ def manage():
             flash('Group name is required.', 'error')
         else:
             try:
-                # This logic will be expanded later to handle invites
-                group_id = group_service.create_group(group_name, current_user._id)
-                # For now, we just create it but don't add the user yet
-                flash(f"Group '{group_name}' created. Functionality to join/manage will be added soon.", 'success')
+                # --- THIS LOGIC IS CORRECTED ---
+                # Call the new service method that handles both creating the group
+                # and adding the user as the owner.
+                success = user_service.create_group_for_user(current_user.id, group_name)
+                if success:
+                    flash(f"Group '{group_name}' created and is now your active group.", 'success')
+                else:
+                    flash('Could not create group.', 'error')
+
             except Exception as e:
                 flash(f'Error creating group: {e}', 'error')
         return redirect(url_for('groups.manage'))
 
-    # The user's groups are already available globally via the context processor
     return render_template('groups/manage.html')
 
 @bp.route('/switch/<group_id>')
@@ -39,5 +43,4 @@ def switch(group_id):
     except Exception as e:
         flash(f'An error occurred: {e}', 'error')
 
-    # Redirect to the dashboard after switching
     return redirect(url_for('home'))
