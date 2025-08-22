@@ -2,3 +2,5 @@
 # Package initialization
 from .event import Event
 from .contact import Contact
+from .user import User
+from .group import Group
