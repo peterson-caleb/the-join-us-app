@@ -74,8 +74,10 @@
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Admin</a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item {% if request.blueprint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard.view_dashboard') }}"><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
-                                    <li><a class="dropdown-item {% if request.blueprint == 'admin' %}active{% endif %}" href="{{ url_for('admin.system_panel') }}"><i class="bi bi-server"></i> System Panel</a></li>
+                                    <li><a class="dropdown-item {% if request.blueprint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard.view_dashboard') }}"><i class="bi bi-grid-1x2"></i> Group Dashboard</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.global_dashboard' %}active{% endif %}" href="{{ url_for('admin.global_dashboard') }}"><i class="bi bi-globe2"></i> Global Dashboard</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.manage_users' %}active{% endif %}" href="{{ url_for('admin.manage_users') }}"><i class="bi bi-person-gear"></i> User Management</a></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.system_panel' %}active{% endif %}" href="{{ url_for('admin.system_panel') }}"><i class="bi bi-server"></i> Group Panel</a></li>
                                     <li><a class="dropdown-item {% if request.endpoint == 'auth.manage_invitation_codes' %}active{% endif %}" href="{{ url_for('auth.manage_invitation_codes') }}"><i class="bi bi-key"></i> Invitation Codes</a></li>
                                 </ul>
                             </li>

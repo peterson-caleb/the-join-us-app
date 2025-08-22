@@ -2,7 +2,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
 from functools import wraps
-from .. import group_service, user_service
+from .. import group_service, user_service, admin_dashboard_service
 
 bp = Blueprint('admin', __name__, url_prefix='/admin')
 
@@ -19,10 +19,9 @@ def admin_required(f):
 @bp.route('/system-panel')
 @admin_required
 def system_panel():
-    # --- THIS IS THE FIX: Call the method from user_service now ---
     all_groups = user_service.get_all_groups_with_owners()
     current_user_group_ids = [gm['group_id'] for gm in current_user.group_memberships]
-    return render_template('admin/system_panel.html', 
+    return render_template('admin/system_panel.html',
                            all_groups=all_groups,
                            current_user_group_ids=current_user_group_ids)
 
@@ -35,3 +34,15 @@ def admin_join_group(group_id):
     except Exception as e:
         flash(str(e), "error")
     return redirect(url_for('admin.system_panel'))
+
+@bp.route('/global-dashboard')
+@admin_required
+def global_dashboard():
+    stats = admin_dashboard_service.get_global_stats()
+    return render_template('admin/global_dashboard.html', stats=stats)
+
+@bp.route('/users')
+@admin_required
+def manage_users():
+    users = admin_dashboard_service.get_all_users_with_details()
+    return render_template('admin/users.html', users=users)

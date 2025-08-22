@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Global Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stat-card {
+        background-color: #fff;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-xl);
+        padding: 1.5rem;
+        transition: all 0.2s ease-in-out;
+        box-shadow: var(--shadow-sm);
+    }
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-300);
+    }
+    .stat-icon {
+        font-size: 2rem;
+        color: var(--primary-500);
+        background-color: var(--primary-100);
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .stat-value {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        line-height: 1;
+    }
+    .stat-label {
+        font-size: 1rem;
+        font-weight: 500;
+        color: var(--gray-500);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-12">
+            <h1>Global System Dashboard</h1>
+            <p class="text-muted">A high-level overview of the entire platform.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon me-3">
+                        <i class="bi bi-people-fill"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ stats.total_users }}</div>
+                        <div class="stat-label">Total Users</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon me-3" style="color: var(--success-600); background-color: var(--success-100);">
+                        <i class="bi bi-collection-fill"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ stats.total_groups }}</div>
+                        <div class="stat-label">Total Groups</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon me-3" style="color: var(--accent-600); background-color: #f5f3ff;">
+                        <i class="bi bi-calendar-event-fill"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ stats.total_events }}</div>
+                        <div class="stat-label">Total Events</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon me-3" style="color: var(--secondary-600); background-color: var(--secondary-100);">
+                        <i class="bi bi-person-lines-fill"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ stats.total_contacts }}</div>
+                        <div class="stat-label">Total Contacts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+         <div class="col-md-4 col-xl-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="stat-icon me-3" style="color: var(--warning-600); background-color: var(--warning-100);">
+                        <i class="bi bi-send-fill"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value">{{ stats.total_sms_sent }}</div>
+                        <div class="stat-label">Total SMS Sent</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
