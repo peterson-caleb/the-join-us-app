@@ -14,12 +14,17 @@ class User(UserMixin):
         self._id = _id if _id else ObjectId()
         self.active_group_id = active_group_id
         self.group_memberships = group_memberships or []
-        # --- NEW: Field for pending group invites ---
-        self.group_invitations = group_invitations or [] # Stores group_ids
+        self.group_invitations = group_invitations or []
 
     @property
     def id(self):
         return str(self._id)
+
+    # --- NEW: Add a property to safely get the active group ID as a string ---
+    @property
+    def active_group_id_str(self):
+        """Returns the active group ID as a string, or None if not set."""
+        return str(self.active_group_id) if self.active_group_id else None
 
     @classmethod
     def from_dict(cls, data):

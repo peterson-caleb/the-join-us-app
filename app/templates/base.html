@@ -39,12 +39,11 @@
 
         .alert-container {
             position: fixed;
-            top: 56px;
             left: 0;
             width: 100%;
             z-index: 1051;
         }
-        .alert {
+        .alert-container .alert {
             border-radius: 0;
             margin-bottom: 0;
             border: 0;
@@ -88,12 +87,12 @@
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-people-fill"></i>
                                 {% set active_group_name = 'No Active Group' %}
-                                {% for group in user_groups %}{% if group._id|string == current_user.active_group_id|string %}{% set active_group_name = group.name %}{% endif %}{% endfor %}
+                                {% for group in user_groups %}{% if group._id|string == current_user.active_group_id_str %}{% set active_group_name = group.name %}{% endif %}{% endfor %}
                                 {{ active_group_name }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% for group in user_groups %}
-                                <li><a class="dropdown-item {% if group._id|string == current_user.active_group_id|string %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
+                                <li><a class="dropdown-item {% if group._id|string == current_user.active_group_id_str %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
                                 {% endfor %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('groups.manage') }}"><i class="bi bi-gear me-2"></i>Manage Groups</a></li>
@@ -110,8 +109,8 @@
                 {% else %}
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('contacts.join_list') }}"><i class="bi bi-envelope-plus"></i> Join Contact List</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}"></i> Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}"></i> Register User</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register User</a></li>
                     </ul>
                 {% endif %}
             </div>
