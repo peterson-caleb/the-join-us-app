@@ -12,23 +12,33 @@
                 </div>
                 <div class="card-body">
                     <p class="card-text">Sign up here to be added to our master contact list for future event invitations.</p>
+                    
+                    {% if disabled %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        This feature is currently unavailable. Please contact the administrator to be added to a group.
+                    </div>
+                    {% endif %}
+
                     <form method="POST" action="{{ url_for('contacts.join_list') }}">
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Full Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="phone" class="form-label">Phone Number</label>
-                            <input type="tel" class="form-control" id="phone" name="phone" required
-                                   pattern="\+[1-9]\d{1,14}"
-                                   title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
-                            <div class="form-text">
-                                Please use the international E.164 format (e.g., +12223334444).
+                        <fieldset {% if disabled %}disabled{% endif %}>
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
                             </div>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">Join Now</button>
-                        </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" required
+                                       pattern="\+[1-9]\d{1,14}"
+                                       title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
+                                <div class="form-text">
+                                    Please use the international E.164 format (e.g., +12223334444).
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">Join Now</button>
+                            </div>
+                        </fieldset>
                     </form>
                 </div>
             </div>

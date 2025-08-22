@@ -12,6 +12,12 @@ def view_dashboard():
         flash('You do not have permission to access the dashboard.', 'error')
         return redirect(url_for('home'))
 
+    # --- NEW: Check for active group before proceeding ---
+    if not current_user.active_group_id:
+        flash("Please select a group to view its dashboard.", "info")
+        return redirect(url_for('groups.manage'))
+
+    group_id = current_user.active_group_id
     period = request.args.get('period', '7')
     details_type = request.args.get('details') 
 
@@ -20,19 +26,17 @@ def view_dashboard():
     except ValueError:
         period_days = 7
 
-    stats = dashboard_service.get_stats(period_days=period_days)
+    stats = dashboard_service.get_stats(group_id, period_days=period_days)
     
-    # --- THIS IS THE FIX ---
-    details_data = [] # Initialize with an empty list instead of None
-    # --- END OF FIX ---
+    details_data = []
 
     if details_type:
         if details_type == 'messages_sent':
-            details_data = dashboard_service.get_sent_messages_details(period_days)
+            details_data = dashboard_service.get_sent_messages_details(group_id, period_days)
         elif details_type == 'confirmed_rsvps':
-            details_data = dashboard_service.get_rsvp_details(period_days, status='YES')
+            details_data = dashboard_service.get_rsvp_details(group_id, period_days, status='YES')
         elif details_type == 'declined_rsvps':
-            details_data = dashboard_service.get_rsvp_details(period_days, status='NO')
+            details_data = dashboard_service.get_rsvp_details(group_id, period_days, status='NO')
 
     return render_template(
         'dashboard/index.html', 
