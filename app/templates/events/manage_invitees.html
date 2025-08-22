@@ -61,7 +61,6 @@
                                     <small class="text-muted">({{ invitee.phone }})</small>
                                 </div>
                                 <div>
-                                    {# --- MODIFICATION START: ADD MANUAL RSVP AND RETRY BUTTONS --- #}
                                     {% if invitee.status in ['pending', 'invited'] %}
                                     <form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
                                         <input type="hidden" name="status" value="YES">
@@ -88,7 +87,6 @@
                                     <form action="{{ url_for('events.delete_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove {{ invitee.name }}?')">Remove</button>
                                     </form>
-                                    {# --- MODIFICATION END --- #}
                                 </div>
                             </div>
                         </div>
@@ -105,15 +103,13 @@
                     <form action="{{ url_for('events.add_invitees', event_id=event._id) }}" method="POST">
                         <div class="mb-3">
                             <label for="invitees-select" class="form-label">Select people to invite:</label>
-                            <select name="invitees_to_add" id="invitees-select" class="form-select" multiple style="height: 200px;">
+                            <select name="invitees_to_add" id="invitees-select" class="form-select" multiple>
                                 {% for contact in contacts %}
                                     {% if contact._id not in current_invitee_ids %}
                                         <option value="{{ contact._id }}">{{ contact.name }} ({{ contact.phone }})</option>
                                     {% endif %}
                                 {% endfor %}
                             </select>
-
-                            <div class="form-text">Hold Ctrl/Cmd to select multiple people.</div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Add Selected to Event</button>
                     </form>
@@ -128,6 +124,13 @@
 <script src="https://cdn.jsdelivr.net/npm/dragula@3.7.3/dist/dragula.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Select2 on the invitee selection box
+    $('#invitees-select').select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Type a name to search...'
+    });
+    
     // Re-initialize tooltips after changes
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
