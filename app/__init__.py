@@ -6,6 +6,7 @@ from .config import Config
 import logging
 from datetime import datetime
 import os
+import sys
 
 mongo = PyMongo()
 login_manager = LoginManager()
@@ -71,13 +72,21 @@ def create_app(config_class=Config):
 
     @login_manager.user_loader
     def load_user(user_id):
-        return user_service.get_user(user_id)
+        # --- TEMPORARY LOGGING ---
+        print(f"--- 1. user_loader RUNNING for user_id: {user_id} ---", file=sys.stderr)
+        user = user_service.get_user(user_id)
+        if user:
+            print(f"--- 2. User object LOADED. Active Group ID: {user.active_group_id} ---", file=sys.stderr)
+        return user
     
     @app.before_request
     def load_user_context():
         g.user_groups = []
         g.pending_invitations = []
         if current_user.is_authenticated:
+            # --- TEMPORARY LOGGING ---
+            print(f"--- 3. before_request RUNNING for user: {current_user.username} ---", file=sys.stderr)
+            print(f"--- 4. current_user.active_group_id is: {current_user.active_group_id} ---", file=sys.stderr)
             g.user_groups = user_service.get_user_groups_with_details(current_user)
             g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
 
@@ -96,7 +105,7 @@ def create_app(config_class=Config):
     from .routes.auth_routes import bp as auth_bp
     from .routes.dashboard_routes import bp as dashboard_bp
     from .routes.group_routes import bp as group_bp
-    from .routes.admin_routes import bp as admin_bp # ADD THIS
+    from .routes.admin_routes import bp as admin_bp
     
     app.register_blueprint(event_bp)
     app.register_blueprint(contact_bp)
@@ -104,13 +113,12 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(group_bp)
-    app.register_blueprint(admin_bp) # ADD THIS
+    app.register_blueprint(admin_bp)
 
     @app.route('/')
     @login_required
     def home():
         return render_template('home.html')
-
 
     @app.errorhandler(401)
     def unauthorized(error):
@@ -138,4 +146,12 @@ def create_app(config_class=Config):
                 except ValueError as e:
                     app.logger.error(f"Could not auto-create admin user: {e}")
 
+    # Helper for template logging
+    @app.context_processor
+    def utility_processor():
+        def log_to_console(message):
+            print(message, file=sys.stderr)
+            return '' # Return empty string so it doesn't render in the HTML
+        return dict(log_to_console=log_to_console)
+    
     return app
