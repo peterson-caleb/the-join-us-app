@@ -1,7 +1,7 @@
 # app/__init__.py
 from flask import Flask, render_template, g
 from flask_pymongo import PyMongo
-from flask_login import LoginManager, login_required, current_user, login_user
+from flask_login import LoginManager, login_required, current_user
 from .config import Config
 import logging
 from datetime import datetime
@@ -76,40 +76,46 @@ def create_app(config_class=Config):
     
     @app.before_request
     def load_user_context():
+        # Initialize context variables
         g.user_groups = []
         g.pending_invitations = []
+        g.active_group = None # ADD THIS
+
         if current_user.is_authenticated:
-            # Always get fresh data from database for the current request
             g.user_groups = user_service.get_user_groups_with_details(current_user)
             g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
 
-            # Self-healing logic: Check if active_group_id is still valid
+            # --- THIS IS THE NEW, SIMPLIFIED LOGIC ---
+            # 1. Check if the user has an active group ID
             if current_user.active_group_id:
-                current_membership_ids = [str(group['_id']) for group in g.user_groups]
-                if str(current_user.active_group_id) not in current_membership_ids:
-                    # The active group is no longer valid, fix it
-                    new_active_group_id = g.user_groups[0]['_id'] if g.user_groups else None
-                    
-                    # Update the database
-                    user_service.switch_active_group(current_user.id, new_active_group_id)
-                    
-                    # Refresh the user object in the session
-                    refreshed_user = user_service.get_user(current_user.id)
-                    if refreshed_user:
-                        # This updates the session with the fresh user object
-                        login_user(refreshed_user, fresh=False)
-                    
-                    app.logger.warning(f"Corrected orphaned active_group_id for user {current_user.id}")
+                # 2. Directly fetch that single group document
+                active_group_doc = group_service.get_group(current_user.active_group_id)
+                
+                # 3. Check if that group is still valid and the user is a member
+                if active_group_doc and any(group['_id'] == active_group_doc._id for group in g.user_groups):
+                    g.active_group = active_group_doc
+                else:
+                    # Self-heal: The active group is invalid or the user isn't a member anymore.
+                    # Switch them to their first available group.
+                    new_active_group = g.user_groups[0] if g.user_groups else None
+                    if new_active_group:
+                        user_service.switch_active_group(current_user.id, str(new_active_group['_id']))
+                        g.active_group = new_active_group # Update context for the current request
+                    else: # User has no groups left
+                        user_service.switch_active_group(current_user.id, None)
+                        g.active_group = None
+
 
     @app.context_processor
     def inject_global_variables():
         return {
             'current_year': datetime.utcnow().year,
             'user_groups': g.get('user_groups', []),
-            'pending_invitations': g.get('pending_invitations', [])
+            'pending_invitations': g.get('pending_invitations', []),
+            'active_group': g.get('active_group') # Pass the active group object to all templates
         }
 
-    # Register blueprints
+    # (Blueprint registration and other routes remain the same)
     from .routes.event_routes import bp as event_bp
     from .routes.contact_routes import bp as contact_bp
     from .routes.sms_routes import bp as sms_bp
@@ -131,6 +137,14 @@ def create_app(config_class=Config):
     def home():
         return render_template('home.html')
 
-    # Error handlers remain the same...
+    @app.errorhandler(401)
+    def unauthorized(error):
+        return render_template('errors/401.html'), 401
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('errors/404.html'), 404
+    
+    # (Auto-admin creation remains the same)
     
     return app

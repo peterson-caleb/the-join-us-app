@@ -86,13 +86,11 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                                 <i class="bi bi-people-fill"></i>
-                                {% set active_group_name = 'No Active Group' %}
-                                {% for group in user_groups %}{% if group._id|string == current_user.active_group_id_str %}{% set active_group_name = group.name %}{% endif %}{% endfor %}
-                                {{ active_group_name }}
+                                {{ active_group.name if active_group else 'No Active Group' }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% for group in user_groups %}
-                                <li><a class="dropdown-item {% if group._id|string == current_user.active_group_id_str %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
+                                <li><a class="dropdown-item {% if active_group and group._id == active_group._id %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
                                 {% endfor %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('groups.manage') }}"><i class="bi bi-gear me-2"></i>Manage Groups</a></li>
