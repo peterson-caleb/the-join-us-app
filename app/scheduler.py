@@ -9,11 +9,11 @@ class TaskScheduler:
     _instance = None
 
     def __init__(self):
-        # This constructor should only contain one-time setup logic.
         self.scheduler = BackgroundScheduler(daemon=True)
         self.is_running = False
         self.app = None
         self.event_service = None
+        self.sms_service = None # ADD THIS LINE
         self._setup_logging()
         atexit.register(self.shutdown)
         self.logger.info("TaskScheduler instance created.")
@@ -24,19 +24,16 @@ class TaskScheduler:
             os.makedirs('logs')
         
         self.logger = logging.getLogger('scheduler')
-        # Prevent duplicate handlers if this is called more than once
         if self.logger.hasHandlers():
             self.logger.handlers.clear()
 
         self.logger.setLevel(logging.INFO)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         
-        # File handler
         file_handler = RotatingFileHandler('logs/scheduler.log', maxBytes=1024*1024, backupCount=5)
         file_handler.setFormatter(formatter)
         self.logger.addHandler(file_handler)
 
-        # Console handler
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
         self.logger.addHandler(console_handler)
@@ -48,11 +45,12 @@ class TaskScheduler:
             cls._instance = cls()
         return cls._instance
 
-    def init_app(self, app, event_service):
+    def init_app(self, app, event_service, sms_service):
         """Initializes the scheduler with the Flask app and services."""
         self.logger.info("Initializing scheduler with Flask app context.")
         self.app = app
         self.event_service = event_service
+        self.sms_service = sms_service # ADD THIS LINE
         
         if not self.is_running:
             self.start()
@@ -93,12 +91,12 @@ class TaskScheduler:
             self.logger.error(f"Failed to start scheduler: {e}", exc_info=True)
             self.is_running = False
 
-    def _run_job(self, job_func, job_name):
-        """Wrapper to execute and log a job function."""
+    def _run_job(self, job_func, job_name, *args):
+        """Wrapper to execute and log a job function with arguments."""
         try:
             with self.app.app_context():
                 self.logger.info(f"Running job: '{job_name}'...")
-                job_func()
+                job_func(*args)
                 self.logger.info(f"Job '{job_name}' finished.")
         except Exception as e:
             self.logger.error(f"Error in job '{job_name}': {e}", exc_info=True)
@@ -107,8 +105,8 @@ class TaskScheduler:
         self._run_job(self.event_service.process_expired_invitations, "Check for expired invitations")
 
     def _run_capacity_check(self):
-        # CORRECTED THIS LINE
-        self._run_job(self.event_service.manage_event_capacity, "Manage event capacity")
+        # The scheduler job needs to pass the sms_service to the method
+        self._run_job(self.event_service.manage_event_capacity, "Manage event capacity", self.sms_service)
         
     def _run_reminder_check(self):
         if hasattr(self.event_service, 'send_pending_reminders'):

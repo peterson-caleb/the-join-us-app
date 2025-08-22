@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Groups{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Manage Groups</h1>
+            </div>
+            <p class="text-muted">Switch between groups you belong to or create a new one.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Your Groups</h5>
+                </div>
+                <div class="card-body">
+                    {% if user_groups %}
+                    <ul class="list-group">
+                        {% for group in user_groups %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0">{{ group.name }}</h6>
+                                <small class="text-muted">Owner ID: {{ group.owner_id }}</small>
+                            </div>
+                            {% if current_user.active_group_id == group._id %}
+                            <span class="badge bg-primary rounded-pill">Active</span>
+                            {% else %}
+                            <a href="{{ url_for('groups.switch', group_id=group._id) }}" class="btn btn-sm btn-outline-primary">
+                                Switch to this Group
+                            </a>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="alert alert-info">You are not a member of any groups yet.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Create a New Group</h5>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('groups.manage') }}" method="POST">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Group Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required
+                                   placeholder="e.g., Family Events">
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Create Group</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

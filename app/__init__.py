@@ -1,7 +1,7 @@
 # app/__init__.py
-from flask import Flask, render_template
+from flask import Flask, render_template, g
 from flask_pymongo import PyMongo
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager, login_required, current_user
 from .config import Config
 import logging
 from datetime import datetime
@@ -16,39 +16,36 @@ user_service = None
 registration_code_service = None
 task_scheduler = None
 message_log_service = None
-dashboard_service = None # ADD THIS LINE
+dashboard_service = None
+group_service = None # ADD THIS LINE
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Setup basic app logging
     logging.basicConfig(level=logging.INFO)
     
-    # Initialize MongoDB
     mongo.init_app(app)
-
-    # Initialize Flask-Login
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'
     login_manager.login_message_category = 'info'
 
     # Initialize services
-    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service, dashboard_service
+    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service, dashboard_service, group_service
     from .services.event_service import EventService
     from .services.contact_service import ContactService
     from .services.sms_service import SMSService
     from .services.user_service import UserService
     from .services.registration_code_service import RegistrationCodeService
     from .services.message_log_service import MessageLogService
-    from .services.dashboard_service import DashboardService # ADD THIS IMPORT
+    from .services.dashboard_service import DashboardService
+    from .services.group_service import GroupService # ADD THIS IMPORT
     from .scheduler import TaskScheduler
     
-    # Initialize services that don't depend on others first
     message_log_service = MessageLogService(mongo.db)
-    dashboard_service = DashboardService(mongo.db) # ADD THIS LINE
+    dashboard_service = DashboardService(mongo.db)
+    group_service = GroupService(mongo.db) # ADD THIS LINE
     
-    # Initialize SMS service with the new guardrail configuration
     sms_service = SMSService(
         sid=app.config['TWILIO_SID'],
         auth_token=app.config['TWILIO_AUTH_TOKEN'],
@@ -60,46 +57,54 @@ def create_app(config_class=Config):
         daily_limit=app.config['SMS_DAILY_LIMIT']
     )
     
-    # Initialize other services that depend on the SMS service
+    # Pass db and config, but not other services to prevent circular dependencies
     event_service = EventService(
         db=mongo.db,
-        sms_service=sms_service,
         invitation_expiry_hours=app.config['INVITATION_EXPIRY_HOURS']
     )
     contact_service = ContactService(mongo.db)
     user_service = UserService(mongo.db)
     registration_code_service = RegistrationCodeService(mongo.db)
 
-    # Initialize scheduler with app context
     if app.config.get('SCHEDULER_ENABLED', True):
-        # This check prevents the scheduler from starting twice in debug mode
         if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
             task_scheduler = TaskScheduler.get_instance()
-            task_scheduler.init_app(app, event_service) 
+            # Pass sms_service to the scheduler initializer
+            task_scheduler.init_app(app, event_service, sms_service) 
             app.logger.info('Task scheduler initialized and started.')
 
-    # User loader for Flask-Login
     @login_manager.user_loader
     def load_user(user_id):
         return user_service.get_user(user_id)
+    
+    # --- NEW: Inject user's groups into the template context ---
+    @app.before_request
+    def load_user_groups():
+        g.user_groups = []
+        if current_user.is_authenticated:
+            g.user_groups = user_service.get_user_groups_with_details(current_user)
 
     @app.context_processor
-    def inject_current_year():
-        # Corrected this line
-        return {'current_year': datetime.utcnow().year}
+    def inject_global_variables():
+        return {
+            'current_year': datetime.utcnow().year,
+            'user_groups': g.get('user_groups', [])
+        }
 
     # Register blueprints
     from .routes.event_routes import bp as event_bp
     from .routes.contact_routes import bp as contact_bp
     from .routes.sms_routes import bp as sms_bp
     from .routes.auth_routes import bp as auth_bp
-    from .routes.dashboard_routes import bp as dashboard_bp # ADD THIS IMPORT
+    from .routes.dashboard_routes import bp as dashboard_bp
+    from .routes.group_routes import bp as group_bp # ADD THIS IMPORT
     
     app.register_blueprint(event_bp)
     app.register_blueprint(contact_bp)
     app.register_blueprint(sms_bp)
     app.register_blueprint(auth_bp)
-    app.register_blueprint(dashboard_bp) # ADD THIS LINE
+    app.register_blueprint(dashboard_bp)
+    app.register_blueprint(group_bp) # ADD THIS LINE
 
     @app.route('/')
     @login_required
@@ -115,7 +120,6 @@ def create_app(config_class=Config):
         return render_template('errors/404.html'), 404
     
     with app.app_context():
-        # Auto-create admin user from env vars if no users exist
         if user_service.is_first_run():
             admin_username = os.getenv('ADMIN_USERNAME')
             admin_email = os.getenv('ADMIN_EMAIL')
