@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Join Us{% endblock %}</title>
     
-    <!-- Font Preloading for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -218,11 +217,18 @@
                                     <i class="bi bi-gear"></i> Admin
                                 </a>
                                 <ul class="dropdown-menu">
+                                    {# --- MODIFICATION START --- #}
                                     <li>
-                                        <a class="dropdown-item" href="{{ url_for('auth.manage_invitation_codes') }}">
+                                        <a class="dropdown-item {% if request.blueprint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard.view_dashboard') }}">
+                                            <i class="bi bi-grid-1x2"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item {% if request.endpoint == 'auth.manage_invitation_codes' %}active{% endif %}" href="{{ url_for('auth.manage_invitation_codes') }}">
                                             <i class="bi bi-key"></i> Invitation Codes
                                         </a>
                                     </li>
+                                    {# --- MODIFICATION END --- #}
                                 </ul>
                             </li>
                         {% endif %}

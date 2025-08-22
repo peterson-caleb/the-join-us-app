@@ -16,6 +16,7 @@ user_service = None
 registration_code_service = None
 task_scheduler = None
 message_log_service = None
+dashboard_service = None # ADD THIS LINE
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -33,17 +34,19 @@ def create_app(config_class=Config):
     login_manager.login_message_category = 'info'
 
     # Initialize services
-    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service
+    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service, dashboard_service
     from .services.event_service import EventService
     from .services.contact_service import ContactService
     from .services.sms_service import SMSService
     from .services.user_service import UserService
     from .services.registration_code_service import RegistrationCodeService
     from .services.message_log_service import MessageLogService
+    from .services.dashboard_service import DashboardService # ADD THIS IMPORT
     from .scheduler import TaskScheduler
     
     # Initialize services that don't depend on others first
     message_log_service = MessageLogService(mongo.db)
+    dashboard_service = DashboardService(mongo.db) # ADD THIS LINE
     
     # Initialize SMS service with the new guardrail configuration
     sms_service = SMSService(
@@ -90,11 +93,13 @@ def create_app(config_class=Config):
     from .routes.contact_routes import bp as contact_bp
     from .routes.sms_routes import bp as sms_bp
     from .routes.auth_routes import bp as auth_bp
+    from .routes.dashboard_routes import bp as dashboard_bp # ADD THIS IMPORT
     
     app.register_blueprint(event_bp)
     app.register_blueprint(contact_bp)
     app.register_blueprint(sms_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(dashboard_bp) # ADD THIS LINE
 
     @app.route('/')
     @login_required
