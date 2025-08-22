@@ -55,18 +55,14 @@ class UserService:
         )
         return result.modified_count > 0
 
-    # --- NEW METHODS for invitations and admin actions ---
-
     def add_admin_to_group(self, admin_user_id, group_id_to_join):
-        """Allows an admin to add themselves to any group as a member."""
         admin_user = self.get_user(admin_user_id)
         if not admin_user or not admin_user.is_admin:
             raise PermissionError("Only administrators can perform this action.")
         
-        # Check if already a member
         is_member = any(gm['group_id'] == ObjectId(group_id_to_join) for gm in admin_user.group_memberships)
         if is_member:
-            return True # No action needed
+            return True
 
         new_membership = {'group_id': ObjectId(group_id_to_join), 'role': 'member'}
         result = self.users_collection.update_one(
@@ -76,18 +72,14 @@ class UserService:
         return result.modified_count > 0
 
     def invite_user_to_group(self, inviter_user, invited_email, group_id):
-        """Adds a group_id to a user's pending invitations."""
-        # 1. Verify inviter is the owner
         is_owner = any(gm['group_id'] == ObjectId(group_id) and gm['role'] == 'owner' for gm in inviter_user.group_memberships)
         if not is_owner:
             raise PermissionError("Only group owners can invite new members.")
 
-        # 2. Find the user to invite
         invited_user = self.get_user_by_email(invited_email)
         if not invited_user:
             raise ValueError(f"No user found with the email: {invited_email}")
 
-        # 3. Check if already a member or already invited
         is_member = any(gm['group_id'] == ObjectId(group_id) for gm in invited_user.group_memberships)
         if is_member:
             raise ValueError("This user is already a member of the group.")
@@ -95,7 +87,6 @@ class UserService:
         if ObjectId(group_id) in invited_user.group_invitations:
             raise ValueError("This user has already been invited to the group.")
 
-        # 4. Add to invitations list
         self.users_collection.update_one(
             {'_id': invited_user._id},
             {'$push': {'group_invitations': ObjectId(group_id)}}
@@ -103,7 +94,7 @@ class UserService:
         return True
 
     def accept_group_invitation(self, user_id, group_id):
-        """Moves a group from invitations to memberships."""
+        """Moves a group from invitations to memberships and sets it as active."""
         user = self.get_user(user_id)
         if ObjectId(group_id) not in user.group_invitations:
             raise ValueError("No pending invitation found for this group.")
@@ -113,13 +104,14 @@ class UserService:
             {'_id': user._id},
             {
                 '$pull': {'group_invitations': ObjectId(group_id)},
-                '$push': {'group_memberships': new_membership}
+                '$push': {'group_memberships': new_membership},
+                # --- THIS IS THE FIX ---
+                '$set': {'active_group_id': ObjectId(group_id)}
             }
         )
         return True
 
     def decline_group_invitation(self, user_id, group_id):
-        """Removes a group from the invitations list."""
         self.users_collection.update_one(
             {'_id': ObjectId(user_id)},
             {'$pull': {'group_invitations': ObjectId(group_id)}}
@@ -142,10 +134,15 @@ class UserService:
         return list(groups_cursor)
 
     def switch_active_group(self, user_id, group_id):
+        """Updates the user's active group."""
         user = self.get_user(user_id)
         is_member = any(gm['group_id'] == ObjectId(group_id) for gm in user.group_memberships)
         if not is_member:
             raise PermissionError("User is not a member of this group.")
+
+        # --- THIS IS THE FIX ---
+        if str(user.active_group_id) == group_id:
+            return True # No update needed, but the action is successful.
 
         result = self.users_collection.update_one(
             {'_id': ObjectId(user_id)},
