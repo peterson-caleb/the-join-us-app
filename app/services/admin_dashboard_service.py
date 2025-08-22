@@ -36,7 +36,8 @@ class AdminDashboardService:
                     'email': 1,
                     'is_admin': 1,
                     'created_at': 1,
-                    'group_membership_count': {'$size': '$group_memberships'}
+                    # --- FIX: Use $ifNull to handle users without a group_memberships field ---
+                    'group_membership_count': {'$size': {'$ifNull': ['$group_memberships', []]}}
                 }
             },
             {
