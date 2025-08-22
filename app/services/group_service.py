@@ -6,7 +6,7 @@ class GroupService:
     def __init__(self, db):
         self.db = db
         self.groups_collection = db['groups']
-        self.users_collection = db['users']
+        # --- REMOVED: self.users_collection is no longer needed here ---
 
     def create_group(self, name, owner_id):
         """Creates a new group and returns its ID."""
@@ -19,37 +19,7 @@ class GroupService:
         group_data = self.groups_collection.find_one({"_id": ObjectId(group_id)})
         return Group.from_dict(group_data) if group_data else None
 
-    # --- NEW METHOD for the admin panel ---
-    def get_all_groups_with_owners(self):
-        """Fetches all groups and enriches them with owner's username."""
-        pipeline = [
-            {
-                '$lookup': {
-                    'from': 'users',
-                    'localField': 'owner_id',
-                    'foreignField': '_id',
-                    'as': 'owner_details'
-                }
-            },
-            {
-                '$unwind': {
-                    'path': '$owner_details',
-                    'preserveNullAndEmptyArrays': True # Keep group even if owner is deleted
-                }
-            },
-            {
-                '$project': {
-                    'name': 1,
-                    'created_at': 1,
-                    'owner_id': 1,
-                    'owner_username': '$owner_details.username'
-                }
-            },
-            {
-                '$sort': {'created_at': -1}
-            }
-        ]
-        return list(self.groups_collection.aggregate(pipeline))
+    # --- MOVED: The get_all_groups_with_owners method has been moved to UserService ---
         
     def get_pending_invitations_for_user(self, user):
         """Fetches full group details for a user's pending invitations."""

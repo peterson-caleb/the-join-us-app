@@ -13,6 +13,38 @@ class UserService:
         self.users_collection.create_index('email', unique=True)
         self.users_collection.create_index('username', unique=True)
 
+    # --- NEW METHOD (Moved from GroupService) ---
+    def get_all_groups_with_owners(self):
+        """Fetches all groups and enriches them with owner's username."""
+        pipeline = [
+            {
+                '$lookup': {
+                    'from': 'users',
+                    'localField': 'owner_id',
+                    'foreignField': '_id',
+                    'as': 'owner_details'
+                }
+            },
+            {
+                '$unwind': {
+                    'path': '$owner_details',
+                    'preserveNullAndEmptyArrays': True
+                }
+            },
+            {
+                '$project': {
+                    'name': 1,
+                    'created_at': 1,
+                    'owner_id': 1,
+                    'owner_username': '$owner_details.username'
+                }
+            },
+            {
+                '$sort': {'created_at': -1}
+            }
+        ]
+        return list(self.groups_collection.aggregate(pipeline))
+
     def is_first_run(self):
         return self.users_collection.count_documents({}) == 0
 
@@ -72,21 +104,15 @@ class UserService:
         return result.modified_count > 0
 
     def invite_user_to_group(self, inviter_user, invited_email, group_id):
-        """Adds a group_id to a user's pending invitations."""
-        # --- THIS IS THE MODIFIED LOGIC ---
-        # 1. Verify inviter is the owner OR an admin
         is_owner = any(gm['group_id'] == ObjectId(group_id) and gm['role'] == 'owner' for gm in inviter_user.group_memberships)
         
-        # Action is permitted if the user is an owner OR if they are a site admin.
         if not is_owner and not inviter_user.is_admin:
             raise PermissionError("Only group owners or administrators can invite new members.")
 
-        # 2. Find the user to invite
         invited_user = self.get_user_by_email(invited_email)
         if not invited_user:
             raise ValueError(f"No user found with the email: {invited_email}")
 
-        # 3. Check if already a member or already invited
         is_member = any(gm['group_id'] == ObjectId(group_id) for gm in invited_user.group_memberships)
         if is_member:
             raise ValueError("This user is already a member of the group.")
@@ -94,7 +120,6 @@ class UserService:
         if ObjectId(group_id) in invited_user.group_invitations:
             raise ValueError("This user has already been invited to the group.")
 
-        # 4. Add to invitations list
         self.users_collection.update_one(
             {'_id': invited_user._id},
             {'$push': {'group_invitations': ObjectId(group_id)}}
