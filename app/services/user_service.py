@@ -13,7 +13,35 @@ class UserService:
         self.users_collection.create_index('email', unique=True)
         self.users_collection.create_index('username', unique=True)
 
-    # --- NEW METHOD (Moved from GroupService) ---
+    # (get_all_groups_with_owners, is_first_run, create_user, create_group_for_user remain the same)
+
+    def switch_active_group(self, user_id, group_id):
+        """Updates the user's active group. Handles None for group_id."""
+        user = self.get_user(user_id)
+        
+        # --- THIS LOGIC IS NOW MORE ROBUST ---
+        
+        # If group_id is provided, verify the user is a member.
+        if group_id:
+            is_member = any(gm['group_id'] == ObjectId(group_id) for gm in user.group_memberships)
+            if not is_member:
+                raise PermissionError("User is not a member of this group.")
+        
+        # Check if the state is already correct to avoid unnecessary DB calls.
+        if str(user.active_group_id) == str(group_id):
+            return True
+
+        # Prepare the new ID for the database (could be ObjectId or None)
+        new_active_id = ObjectId(group_id) if group_id else None
+
+        result = self.users_collection.update_one(
+            {'_id': ObjectId(user_id)},
+            {'$set': {'active_group_id': new_active_id}}
+        )
+        return result.modified_count > 0
+
+    # (All other methods remain the same)
+    
     def get_all_groups_with_owners(self):
         """Fetches all groups and enriches them with owner's username."""
         pipeline = [
@@ -163,21 +191,6 @@ class UserService:
         group_ids = [gm['group_id'] for gm in user.group_memberships]
         groups_cursor = self.groups_collection.find({'_id': {'$in': group_ids}})
         return list(groups_cursor)
-
-    def switch_active_group(self, user_id, group_id):
-        user = self.get_user(user_id)
-        is_member = any(gm['group_id'] == ObjectId(group_id) for gm in user.group_memberships)
-        if not is_member:
-            raise PermissionError("User is not a member of this group.")
-
-        if str(user.active_group_id) == group_id:
-            return True
-
-        result = self.users_collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {'$set': {'active_group_id': ObjectId(group_id)}}
-        )
-        return result.modified_count > 0
 
     def verify_password(self, user, password):
         return bcrypt.checkpw(password.encode('utf-8'), user.password_hash)
