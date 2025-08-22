@@ -32,7 +32,7 @@
                                     {% else %}
                                         <a href="{{ url_for('groups.switch', group_id=group._id) }}" class="btn btn-sm btn-outline-primary me-2">Activate</a>
                                     {% endif %}
-                                    {% if is_owner %}
+                                    {% if is_owner or current_user.is_admin %}
                                         <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#inviteModal-{{ group._id }}">
                                             <i class="bi bi-person-plus"></i> Invite
                                         </button>
@@ -69,7 +69,8 @@
 </div>
 
 {% for group in user_groups %}
-    {% if group.owner_id|string == current_user.id %}
+    {% set is_owner = group.owner_id|string == current_user.id %}
+    {% if is_owner or current_user.is_admin %}
     <div class="modal fade" id="inviteModal-{{ group._id }}" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
