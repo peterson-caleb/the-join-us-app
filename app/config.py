@@ -26,8 +26,13 @@ class Config:
     
     # SMS Guardrail Configuration
     SMS_ENABLED = os.getenv('SMS_ENABLED', 'false').lower() == 'true'
-    SMS_HOURLY_LIMIT = int(os.getenv('SMS_HOURLY_LIMIT', '100'))
-    SMS_DAILY_LIMIT = int(os.getenv('SMS_DAILY_LIMIT', '500'))
+    # --- REMOVED: Global SMS limits are now per-group in the database ---
+    # SMS_HOURLY_LIMIT = int(os.getenv('SMS_HOURLY_LIMIT', '100'))
+    # SMS_DAILY_LIMIT = int(os.getenv('SMS_DAILY_LIMIT', '500'))
+
+    # --- NEW: Recipient Spam Protection Settings ---
+    RECIPIENT_SPAM_LIMIT = int(os.getenv('RECIPIENT_SPAM_LIMIT', '5')) # Max messages to one number
+    RECIPIENT_SPAM_WINDOW_MINUTES = int(os.getenv('RECIPIENT_SPAM_WINDOW_MINUTES', '10')) # in this time window
     
     # Logging configuration
     SMS_LOG_FILE = 'logs/sms.log'

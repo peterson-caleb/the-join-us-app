@@ -7,11 +7,11 @@ class MessageLogService:
         self.db = db
         self.logs_collection = db.message_logs
         
-        # Create indexes for performance
         self.logs_collection.create_index([("contact_id", 1)])
         self.logs_collection.create_index([("event_id", 1)])
         self.logs_collection.create_index([("timestamp", -1)])
-        self.logs_collection.create_index([("group_id", 1)]) # NEW index for group queries
+        self.logs_collection.create_index([("group_id", 1)])
+        self.logs_collection.create_index([("to_number", 1), ("timestamp", -1)]) # Index for spam check
 
     def log_message(self, to_number, message_body, status, message_sid=None, error_message=None, contact_id=None, event_id=None, group_id=None):
         """Logs an SMS message attempt to the database."""
@@ -34,15 +34,21 @@ class MessageLogService:
         self.logs_collection.insert_one(log_entry)
         return log_entry
 
-    def get_sms_count_since(self, start_time):
-        """
-        Counts the number of successfully sent SMS messages since a given start time.
-        NOTE: This is currently for the GLOBAL rate-limiter. It will be made
-        group-aware in the next implementation step.
-        """
+    def get_sms_count_for_group_since(self, group_id, start_time):
+        """Counts sent SMS for a specific group since a given time."""
         count = self.logs_collection.count_documents({
             "timestamp": {"$gte": start_time},
-            "status": "sent" 
+            "status": "sent",
+            "group_id": ObjectId(group_id)
+        })
+        return count
+
+    def get_sms_count_for_recipient_since(self, to_number, start_time):
+        """Counts SMS sent to a specific number from the whole platform."""
+        count = self.logs_collection.count_documents({
+            "timestamp": {"$gte": start_time},
+            "to_number": to_number
+            # status doesn't matter, we count all attempts to a number
         })
         return count
 
