@@ -65,12 +65,13 @@
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 type="button"
+                                                id="actionsMenu-{{ contact._id }}"
                                                 data-bs-toggle="dropdown"
-                                                data-bs-container="body"
+                                                data-bs-popper-config='{"strategy":"fixed"}'
                                                 aria-expanded="false">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ contact._id }}">
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
                                                     <i class="bi bi-clock-history me-2"></i>Message History
@@ -205,6 +206,40 @@ $(document).ready(function() {
         width: '100%',
         tags: true,
         tokenSeparators: [',', ' ']
+    });
+});
+
+/**
+ * Definitive fix for dropdown positioning issues within scrolling containers.
+ * This script ensures that when a dropdown with a 'fixed' positioning strategy
+ * is opened, it continuously updates its position during scroll events.
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // Find all dropdown toggles that use the fixed positioning strategy.
+    const dropdownToggles = document.querySelectorAll('[data-bs-popper-config*="fixed"]');
+
+    let activeDropdownInstance = null;
+
+    // Create a single function to handle the position update.
+    const updatePosition = () => {
+        if (activeDropdownInstance) {
+            activeDropdownInstance.update();
+        }
+    };
+
+    dropdownToggles.forEach(toggle => {
+        // When a dropdown is shown, find its instance and add a scroll listener.
+        toggle.addEventListener('shown.bs.dropdown', event => {
+            activeDropdownInstance = bootstrap.Dropdown.getInstance(event.target);
+            // Listen for scroll events on the main window (and parents).
+            window.addEventListener('scroll', updatePosition, true);
+        });
+
+        // When the dropdown is hidden, remove the scroll listener for performance.
+        toggle.addEventListener('hidden.bs.dropdown', () => {
+            window.removeEventListener('scroll', updatePosition, true);
+            activeDropdownInstance = null;
+        });
     });
 });
 </script>
