@@ -14,17 +14,17 @@
     .status-yes { background-color: #198754; } .status-no { background-color: #dc3545; }
     .status-expired { background-color: #ffc107; } .status-error { background-color: #dc3545; }
 
-    /* --- NEW STYLES FOR MOBILE REORDERING --- */
+    /* --- STYLES FOR MOBILE REORDERING --- */
     .mobile-reorder-controls {
         display: none; /* Hidden by default */
-        gap: 0.5rem;
     }
 
     .reorder-btn {
         background: none;
         border: none;
         color: var(--bs-secondary-color);
-        padding: 0.25rem 0.5rem;
+        padding: 0; /* Adjusted padding */
+        line-height: 1; /* Aligns icons nicely when stacked */
         cursor: pointer;
     }
     .reorder-btn:hover {
@@ -35,13 +35,15 @@
         cursor: not-allowed;
     }
 
-    /* Show controls and hide drag cursor on mobile */
+    /* Show and stack controls on mobile */
     @media (max-width: 991.98px) {
         .invitee-item {
             cursor: default; /* Remove move cursor on mobile */
         }
         .mobile-reorder-controls {
-            display: inline-flex; /* Show buttons on mobile */
+            display: flex; /* Show buttons */
+            flex-direction: column; /* Stack them vertically */
+            justify-content: center; /* Center them in the column */
         }
     }
 </style>
@@ -172,7 +174,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const inviteeList = document.getElementById('inviteeList');
 
-    // --- NEW: Function to save the order ---
+    // --- Function to save the order ---
     function saveOrder() {
         const inviteeOrder = Array.from(inviteeList.children).map(item => item.dataset.id);
         fetch(`/events/{{ event._id }}/reorder_invitees`, {
@@ -182,21 +184,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }).catch(err => console.error('Error reordering invitees:', err));
     }
     
-    // --- MODIFIED: Initialize Dragula for DESKTOP only ---
+    // --- Initialize Dragula for DESKTOP only ---
     if (window.matchMedia("(min-width: 992px)").matches) {
         var drake = dragula([inviteeList], {
             moves: function (el, source, handle, sibling) {
-                // Make the whole item draggable on desktop
                 return true;
             }
         });
         drake.on('drop', () => {
             saveOrder();
-            updateButtonStates(); // Update buttons after drag
+            updateButtonStates();
         });
     }
 
-    // --- NEW: Handle mobile reorder button clicks ---
+    // --- Handle mobile reorder button clicks ---
     inviteeList.addEventListener('click', function(e) {
         const upButton = e.target.closest('.reorder-up');
         const downButton = e.target.closest('.reorder-down');
@@ -222,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- NEW: Function to disable/enable first/last buttons ---
+    // --- Function to disable/enable first/last buttons ---
     function updateButtonStates() {
         const items = inviteeList.querySelectorAll('.invitee-item');
         items.forEach((item, index) => {
