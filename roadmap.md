@@ -32,6 +32,8 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 * **Explicit Waitlist Management**: When an event is full, automatically place new "YES" RSVPs onto a waitlist. If a spot opens, the system will automatically promote the first person from the waitlist.
 * **Guest List Export (for Check-in)**: Allow hosts to export the final list of confirmed attendees as a CSV or PDF for use at the event.
 * **Bulk Contact Import (CSV)**: A crucial time-saver that will allow hosts to upload their entire contact list from a CSV file instead of adding them one by one.
+* **Traditional Invite Method**: Just invite all attendees at once.
+* **Add maybe option for response**: Need to figure out how to handle this in the logic. 
 
 ### Admin & Platform Improvements
 * **Clickable Global Dashboard Stats**: Make the numbers on the global admin dashboard clickable to show a detailed list of the corresponding items (e.g., click on "Total Users" to go to the user management page).
