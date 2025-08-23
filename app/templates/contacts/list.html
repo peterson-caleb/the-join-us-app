@@ -63,15 +63,15 @@
                                 
                                 <td class="text-end">
                                     <div class="dropdown">
-                                        {# --- FINAL FIX: Using Popper config for fixed strategy --- #}
+                                        {# --- FINAL FIX: This attribute moves the menu outside of the clipping container --- #}
                                         <button class="btn btn-sm btn-outline-secondary"
                                                 type="button"
-                                                id="actionsMenu-{{ contact._id }}"
                                                 data-bs-toggle="dropdown"
+                                                data-bs-container="body"
                                                 aria-expanded="false">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ contact._id }}">
+                                        <ul class="dropdown-menu dropdown-menu-end">
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
                                                     <i class="bi bi-clock-history me-2"></i>Message History
