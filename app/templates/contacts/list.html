@@ -63,10 +63,11 @@
                                 
                                 <td class="text-end">
                                     <div class="dropdown">
-                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        {# --- MODIFICATION: Added data-bs-container="body" to prevent clipping --- #}
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="actionsMenu-{{ contact._id }}" data-bs-toggle="dropdown" data-bs-container="body" aria-expanded="false">
                                             <i class="bi bi-three-dots-vertical"></i>
                                         </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ contact._id }}">
                                             <li>
                                                 <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
                                                     <i class="bi bi-clock-history me-2"></i>Message History
@@ -79,11 +80,9 @@
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                {# --- MODIFICATION START: Changed form to a button that opens a confirmation modal --- #}
                                                 <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}">
                                                     <i class="bi bi-trash me-2"></i>Delete Contact
                                                 </button>
-                                                {# --- MODIFICATION END --- #}
                                             </li>
                                         </ul>
                                     </div>
@@ -172,7 +171,6 @@
     </div>
 </div>
 
-{# --- NEW: Added a separate confirmation modal for deleting a contact --- #}
 <div class="modal fade" id="deleteContactModal-{{ contact._id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
