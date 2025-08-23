@@ -279,13 +279,11 @@
                             <div class="event-badges">
                                 <span class="event-badge">
                                     <i class="bi bi-calendar-event"></i>
-                                    {# --- MODIFICATION START --- #}
                                     {% if event.date %}
                                         {{ event.date.strftime('%b %d, %Y') }}
                                     {% else %}
                                         No Date Set
                                     {% endif %}
-                                    {# --- MODIFICATION END --- #}
                                 </span>
                                 <span class="event-badge info">
                                     <i class="bi bi-hash"></i>
@@ -294,7 +292,6 @@
                             </div>
                         </div>
                         <div class="event-actions">
-                            {# --- MODIFICATION: Changed button class --- #}
                             <a href="{{ url_for('events.manage_invitees', event_id=event._id) }}" class="btn btn-outline-accent btn-sm">
                                 <i class="bi bi-people"></i><span class="btn-label"> Manage</span>
                             </a>
@@ -359,6 +356,14 @@
                     </div>
 
                     <div class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Confirmed</span>
+                            <span class="stat-value text-success">{{ confirmed }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Sent (Awaiting Reply)</span>
+                            <span class="stat-value text-primary">{{ invited }}</span>
+                        </div>
                         <div class="stat-item">
                             <span class="stat-label">In Queue</span>
                             <span class="stat-value">{{ pending }}</span>
@@ -463,7 +468,6 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Date</label>
-                        {# --- MODIFICATION: Format date for input value --- #}
                         <input type="date" class="form-control" name="date" value="{{ event.date.strftime('%Y-%m-%d') if event.date else '' }}" required min="{{ now.strftime('%Y-%m-%d') }}">
                     </div>
                     <div class="mb-3">
