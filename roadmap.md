@@ -23,6 +23,7 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 
 ### Organizer Tooling
 * **Event Time & Location Fields**: Add dedicated "Start Time" and "Address" fields to events for more complete invitation details.
+* **Find contacts with tags in the manage invitees window**:Make use of the contact tags we created.
 * **Adjustable Invitation Expiry**: Allow organizers to set a custom expiration timeout for invitations on a per-event basis. Include a setting to allow expired guests to RSVP if capacity is still available.
 * **Explicit Waitlist Management**: When an event is full, automatically place new "YES" RSVPs onto a waitlist. If a spot opens, the system will automatically promote the first person from the waitlist.
 * **Guest List Export (for Check-in)**: Allow hosts to export the final list of confirmed attendees as a CSV or PDF for use at the event.
