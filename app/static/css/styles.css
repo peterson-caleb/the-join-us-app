@@ -900,3 +900,12 @@ p {
     border: 1px solid var(--gray-300);
   }
 }
+
+/*
+   Final override for dropdown clipping.
+   This forces the dropdown menu to be positioned relative to the browser window,
+   breaking it out of any clipping parent containers like .table-responsive.
+*/
+.dropdown-menu[data-popper-placement] {
+    position: fixed !important;
+}
