@@ -132,12 +132,14 @@ def manage_invitees(event_id):
         return redirect(url_for('events.manage_events'))
     
     contacts = contact_service.get_contacts(group_id)
-    current_invitee_ids = {invitee.get('contact_id') for invitee in event.invitees}
+    all_tags = contact_service.get_all_tags(group_id)
+    current_invitee_ids = list({invitee.get('contact_id') for invitee in event.invitees})
     
     return render_template(
         'events/manage_invitees.html',
         event=event,
         contacts=contacts,
+        all_tags=all_tags,
         current_invitee_ids=current_invitee_ids
     )
 
