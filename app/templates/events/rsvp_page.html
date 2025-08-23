@@ -16,8 +16,19 @@
                         A message for you, {{ invitee.name }}.
                     </p>
                     <p class="lead">
-                        The event is on <strong>{{ event.date }}</strong>. Will you be attending?
+                        The event is on <strong>{{ event.date.strftime('%A, %B %d, %Y') if event.date else 'a future date' }}</strong>.
+                        {% if event.start_time %}
+                            It starts at <strong>{{ event.start_time }}</strong>.
+                        {% endif %}
                     </p>
+                    {% if event.location %}
+                    <p class="text-muted">
+                        <i class="bi bi-geo-alt-fill"></i> Location: <strong>{{ event.location }}</strong>
+                    </p>
+                    {% endif %}
+                    
+                    <p class="lead mt-3">Will you be attending?</p>
+
                     {% if event.details %}
                     <div class="alert alert-info mt-3">
                         <i class="bi bi-info-circle me-2"></i>
