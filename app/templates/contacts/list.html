@@ -61,7 +61,6 @@
                                     {% endfor %}
                                 </td>
                                 
-                                {# --- CORRECTED AND VERIFIED STRUCTURE --- #}
                                 <td class="text-end">
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -80,11 +79,11 @@
                                             </li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <form action="{{ url_for('contacts.delete_contact', contact_id=contact._id) }}" method="POST" class="dropdown-item-form" onsubmit="return confirm('Are you sure you want to delete this contact?')">
-                                                    <button type="submit" class="btn dropdown-item text-danger">
-                                                        <i class="bi bi-trash me-2"></i>Delete Contact
-                                                    </button>
-                                                </form>
+                                                {# --- MODIFICATION START: Changed form to a button that opens a confirmation modal --- #}
+                                                <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}">
+                                                    <i class="bi bi-trash me-2"></i>Delete Contact
+                                                </button>
+                                                {# --- MODIFICATION END --- #}
                                             </li>
                                         </ul>
                                     </div>
@@ -169,6 +168,28 @@
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+{# --- NEW: Added a separate confirmation modal for deleting a contact --- #}
+<div class="modal fade" id="deleteContactModal-{{ contact._id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the contact "<strong>{{ contact.name }}</strong>"?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('contacts.delete_contact', contact_id=contact._id) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Delete Contact</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
