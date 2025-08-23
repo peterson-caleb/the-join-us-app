@@ -8,9 +8,7 @@ class ContactService:
         self.contacts_collection = db['master_list']
 
     def create_contact(self, contact_data, group_id):
-        # Check for duplicate phone number within the same group
-        if self.contacts_collection.find_one({"phone": contact_data['phone'], "group_id": ObjectId(group_id)}):
-            raise ValueError("A contact with this phone number already exists in this group.")
+        # The check for a duplicate phone number has been removed from this method.
         
         contact_data['group_id'] = ObjectId(group_id)
         contact = Contact.from_dict(contact_data)
