@@ -16,7 +16,7 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 <<<<<<< HEAD
 * ~**Fix Contact Editing**: The "Edit" functionality on the main contact list is not working and needs to be repaired.~
 =======
-* ~ **Fix Contact Editing**: The "Edit" functionality on the main contact list is not working and needs to be repaired.~ 
+* ~**Fix Contact Editing**: The "Edit" functionality on the main contact list is not working and needs to be repaired.~ 
 >>>>>>> origin/main
 
 ### Guest Experience Improvements
@@ -24,6 +24,7 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 * **"Add to Calendar" Button**: After a guest confirms, provide a one-click button on the confirmation page to add the event to their Google, Apple, or other calendar via an `.ics` file.
 * **RSVP Modification & Cancellation**: Give guests a simple way to change their RSVP from "YES" to "NO", which would automatically free up a spot and trigger an invitation for the next person on the waitlist.
 * **See Who's Coming**: On the RSVP page, give organizers the option to show guests a list of others who have confirmed their attendance.
+* **Fix missing edit invite issue**: Too wide for mobile, either ditch tag here or more menu to the left? Maybe other options
 
 ### Organizer Tooling
 * ~**Event Time & Location Fields**: Add dedicated "Start Time" and "Address" fields to events for more complete invitation details.~
@@ -32,6 +33,8 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 * **Explicit Waitlist Management**: When an event is full, automatically place new "YES" RSVPs onto a waitlist. If a spot opens, the system will automatically promote the first person from the waitlist.
 * **Guest List Export (for Check-in)**: Allow hosts to export the final list of confirmed attendees as a CSV or PDF for use at the event.
 * **Bulk Contact Import (CSV)**: A crucial time-saver that will allow hosts to upload their entire contact list from a CSV file instead of adding them one by one.
+* **Traditional Invite Method**: Just invite all attendees at once.
+* **Add maybe option for response**: Need to figure out how to handle this in the logic. 
 
 ### Admin & Platform Improvements
 * **Clickable Global Dashboard Stats**: Make the numbers on the global admin dashboard clickable to show a detailed list of the corresponding items (e.g., click on "Total Users" to go to the user management page).
