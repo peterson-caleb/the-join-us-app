@@ -2,15 +2,40 @@
 
 {% block title %}RSVP for {{ event.name }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    .rsvp-card .card-body { padding: 2rem; }
+    .status-banner { padding: 1rem; border-radius: 0.5rem; font-weight: 500; }
+    .status-yes { background-color: var(--success-50); color: var(--success-800); border: 1px solid var(--success-200); }
+    .status-no { background-color: var(--danger-50); color: var(--danger-800); border: 1px solid var(--danger-200); }
+    .btn-yes.active, .btn-yes:hover { background-color: var(--success-600) !important; border-color: var(--success-600) !important; }
+    .btn-no.active, .btn-no:hover { background-color: var(--danger-600) !important; border-color: var(--danger-600) !important; }
+    .toast-container { z-index: 1090; }
+</style>
+{% endblock %}
+
+
 {% block content %}
-<div class="container text-center mt-5">
+<div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <div class="card">
+            <div id="rsvp-card" class="card rsvp-card">
                 <div class="card-header">
                     <h2 class="mb-0">You're Invited!</h2>
                 </div>
-                <div class="card-body">
+                <div class="card-body text-center">
+                    <div id="status-container" class="mb-4">
+                        {% if invitee.status == 'YES' %}
+                        <div class="status-banner status-yes">
+                            <i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.
+                        </div>
+                        {% elif invitee.status == 'NO' %}
+                        <div class="status-banner status-no">
+                            <i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.
+                        </div>
+                        {% endif %}
+                    </div>
+
                     <h3 class="card-title">{{ event.name }}</h3>
                     <p class="card-text">
                         A message for you, {{ invitee.name }}.
@@ -27,29 +52,151 @@
                     </p>
                     {% endif %}
                     
-                    <p class="lead mt-3">Will you be attending?</p>
+                    <p class="lead mt-3">
+                        {% if invitee.status in ['YES', 'NO'] %}
+                            Would you like to change your response?
+                        {% else %}
+                            Will you be attending?
+                        {% endif %}
+                    </p>
+                    
+                    {% if expiry_datetime_est %}
+                    <div class="alert alert-warning small">
+                        Please respond by {{ expiry_datetime_est.strftime('%A, %B %d at %I:%M %p %Z') }}
+                    </div>
+                    {% endif %}
 
                     {% if event.details %}
-                    <div class="alert alert-info mt-3">
+                    <div class="alert alert-info mt-3 text-start">
                         <i class="bi bi-info-circle me-2"></i>
                         <strong>Event Details:</strong>
                         <div class="mt-2">{{ event.details }}</div>
                     </div>
                     {% endif %}
-                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-                        <a href="{{ url_for('events.submit_rsvp', token=token, response='YES') }}" class="btn btn-success btn-lg px-4 gap-3">
+                    <div id="rsvp-buttons" class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
+                        <button class="btn btn-success btn-lg px-4 gap-3 btn-yes {% if invitee.status == 'YES' %}active{% endif %}" data-response="YES">
                             <i class="bi bi-check-circle"></i> Yes, I'll be there!
-                        </a>
-                        <a href="{{ url_for('events.submit_rsvp', token=token, response='NO') }}" class="btn btn-danger btn-lg px-4">
+                        </button>
+                        <button class="btn btn-danger btn-lg px-4 btn-no {% if invitee.status == 'NO' %}active{% endif %}" data-response="NO">
                             <i class="bi bi-x-circle"></i> No, I can't make it
-                        </a>
+                        </button>
                     </div>
                 </div>
                 <div class="card-footer text-muted">
-                    <small>Your response is important to us. Please reply promptly.</small>
+                    <small>Your response is important to us.</small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="rsvpToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toast-title"></strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toast-body">
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const rsvpButtons = document.querySelectorAll('#rsvp-buttons button');
+    const token = "{{ token }}";
+    const statusContainer = document.getElementById('status-container');
+    const toastElement = document.getElementById('rsvpToast');
+    const toast = new bootstrap.Toast(toastElement);
+
+    rsvpButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const response = this.dataset.response;
+            submitRsvp(response);
+        });
+    });
+
+    function showToast(title, message, isSuccess) {
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+        
+        toastTitle.textContent = title;
+        toastBody.textContent = message;
+        
+        toastElement.classList.remove('text-bg-success', 'text-bg-danger');
+        if (isSuccess) {
+            toastElement.classList.add('text-bg-success');
+        } else {
+            toastElement.classList.add('text-bg-danger');
+        }
+        
+        toast.show();
+    }
+
+    function updateStatusUI(response) {
+        let bannerHtml = '';
+        if (response === 'YES') {
+            bannerHtml = `
+            <div class="status-banner status-yes">
+                <i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.
+            </div>`;
+            document.querySelector('.btn-yes').classList.add('active');
+            document.querySelector('.btn-no').classList.remove('active');
+        } else if (response === 'NO') {
+            bannerHtml = `
+            <div class="status-banner status-no">
+                <i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.
+            </div>`;
+            document.querySelector('.btn-no').classList.add('active');
+            document.querySelector('.btn-yes').classList.remove('active');
+        }
+        statusContainer.innerHTML = bannerHtml;
+    }
+
+    function setLoadingState(isLoading) {
+        rsvpButtons.forEach(button => {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>  Saving...`;
+            } else {
+                button.disabled = false;
+                // Restore original text
+                const icon = button.dataset.response === 'YES' ? 'bi-check-circle' : 'bi-x-circle';
+                const text = button.dataset.response === 'YES' ? "Yes, I'll be there!" : "No, I can't make it";
+                button.innerHTML = `<i class="bi ${icon}"></i> ${text}`;
+            }
+        });
+    }
+
+    async function submitRsvp(response) {
+        setLoadingState(true);
+
+        try {
+            const res = await fetch(`/api/rsvp/${token}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ response: response }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showToast('Success!', data.message, true);
+                updateStatusUI(response);
+            } else {
+                showToast('Error', data.message, false);
+            }
+
+        } catch (error) {
+            showToast('Network Error', 'Could not submit your RSVP. Please try again later.', false);
+        } finally {
+            setLoadingState(false);
+        }
+    }
+});
+</script>
 {% endblock %}

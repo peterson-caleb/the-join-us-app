@@ -8,7 +8,7 @@ class Event:
     """
     Event model representing a single event in the RSVP system.
     """
-    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=24, details="", location=None, start_time=None):
+    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=None, details="", location=None, start_time=None, allow_rsvp_after_expiry=False):
         self.name = name
         self.date = date
         self.capacity = capacity
@@ -19,9 +19,9 @@ class Event:
         self.created_at = datetime.utcnow()
         self.event_code = self._generate_event_code()
         self.invitation_expiry_hours = invitation_expiry_hours
+        self.allow_rsvp_after_expiry = allow_rsvp_after_expiry
         self.automation_status = 'paused'
         self._id = None
-        # --- NEW: Field for multi-tenancy ---
         self.group_id = group_id
 
 
@@ -46,15 +46,18 @@ class Event:
         elif not isinstance(event_date, datetime):
                  event_date = datetime.now()
 
+        # The global expiry is passed as a default, but the specific event's value takes precedence
+        event_specific_expiry = data.get('invitation_expiry_hours', invitation_expiry_hours)
+
         event = cls(
             name=data['name'],
             date=event_date,
             capacity=data['capacity'],
-            invitation_expiry_hours=invitation_expiry_hours,
+            invitation_expiry_hours=event_specific_expiry,
             details=data.get('details', ""),
             location=data.get('location'),
             start_time=data.get('start_time'),
-            # --- NEW: Field for multi-tenancy ---
+            allow_rsvp_after_expiry=data.get('allow_rsvp_after_expiry', False),
             group_id=data.get('group_id')
         )
         event.invitees = data.get('invitees', [])
@@ -80,7 +83,7 @@ class Event:
             "created_at": self.created_at,
             "event_code": self.event_code,
             "invitation_expiry_hours": self.invitation_expiry_hours,
+            "allow_rsvp_after_expiry": self.allow_rsvp_after_expiry,
             "automation_status": self.automation_status,
-            # --- NEW: Field for multi-tenancy ---
             "group_id": self.group_id
         }
