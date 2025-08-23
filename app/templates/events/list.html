@@ -285,10 +285,18 @@
                                         No Date Set
                                     {% endif %}
                                 </span>
+                                {% if event.start_time %}
                                 <span class="event-badge info">
-                                    <i class="bi bi-hash"></i>
-                                    {{ event.event_code }}
+                                    <i class="bi bi-clock"></i>
+                                    {{ event.start_time }}
                                 </span>
+                                {% endif %}
+                                {% if event.location %}
+                                <span class="event-badge info">
+                                    <i class="bi bi-geo-alt"></i>
+                                    {{ event.location }}
+                                </span>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="event-actions">
@@ -339,7 +347,7 @@
                                  data-bs-toggle="tooltip"
                                  title="{{ confirmed }} Confirmed">
                                 {% if confirmed_percent > 15 %}
-                                    <small class="text-white font-weight-medium">{{ confirmed }} Confirmed</small>
+                                <small class="text-white font-weight-medium">{{ confirmed }} Confirmed</small>
                                 {% endif %}
                             </div>
 
@@ -349,7 +357,7 @@
                                  data-bs-toggle="tooltip"
                                  title="{{ invited }} Pending Response">
                                 {% if invited_percent > 15 %}
-                                    <small class="text-white font-weight-medium">{{ invited }} Pending</small>
+                                <small class="text-white font-weight-medium">{{ invited }} Pending</small>
                                 {% endif %}
                             </div>
                         </div>
@@ -421,10 +429,20 @@
                         <label class="form-label">Event Name</label>
                         <input type="text" class="form-control" name="name" required>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" name="date" required
+                                   min="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" class="form-control" name="start_time">
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label class="form-label">Date</label>
-                        <input type="date" class="form-control" name="date" required
-                               min="{{ now.strftime('%Y-%m-%d') }}">
+                        <label class="form-label">Location / Address</label>
+                        <input type="text" class="form-control" name="location" placeholder="e.g., 123 Main St, Anytown">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Capacity</label>
@@ -466,9 +484,19 @@
                         <label class="form-label">Event Name</label>
                         <input type="text" class="form-control" name="name" value="{{ event.name }}" required>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date</label>
+                            <input type="date" class="form-control" name="date" value="{{ event.date.strftime('%Y-%m-%d') if event.date else '' }}" required min="{{ now.strftime('%Y-%m-%d') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Start Time</label>
+                            <input type="time" class="form-control" name="start_time" value="{{ event.start_time or '' }}">
+                        </div>
+                    </div>
                     <div class="mb-3">
-                        <label class="form-label">Date</label>
-                        <input type="date" class="form-control" name="date" value="{{ event.date.strftime('%Y-%m-%d') if event.date else '' }}" required min="{{ now.strftime('%Y-%m-%d') }}">
+                        <label class="form-label">Location / Address</label>
+                        <input type="text" class="form-control" name="location" value="{{ event.location or '' }}" placeholder="e.g., 123 Main St, Anytown">
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Capacity</label>
@@ -507,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
-    
+
     // Check if we should auto-open an edit modal after duplication
     const urlParams = new URLSearchParams(window.location.search);
     const editEventId = urlParams.get('edit_event');
