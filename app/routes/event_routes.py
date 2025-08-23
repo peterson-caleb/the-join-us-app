@@ -31,7 +31,9 @@ def manage_events():
                 'name': request.form['name'],
                 'date': request.form['date'],
                 'capacity': int(request.form['capacity']),
-                'details': request.form.get('details', '')
+                'details': request.form.get('details', ''),
+                'location': request.form.get('location', ''),
+                'start_time': request.form.get('start_time', '')
             }
             event_service.create_event(event_data, group_id)
             flash('Event created successfully!', 'success')
@@ -87,7 +89,9 @@ def edit_event(event_id):
             'name': request.form['name'],
             'date': request.form['date'],
             'capacity': int(request.form['capacity']),
-            'details': request.form.get('details', '')
+            'details': request.form.get('details', ''),
+            'location': request.form.get('location', ''),
+            'start_time': request.form.get('start_time', '')
         }
         
         event_service.update_event(group_id, event_id, event_data)
@@ -218,7 +222,7 @@ def duplicate_event(event_id):
         if not event:
             flash('Event not found.', 'error')
             return redirect(url_for('events.manage_events'))
-        
+
         duplicate_data = {
             'name': f"COPY - {event.name}",
             'date': event.date.strftime('%Y-%m-%d') if hasattr(event.date, 'strftime') else event.date,
@@ -226,7 +230,7 @@ def duplicate_event(event_id):
             'details': event.details or '',
             'automation_status': 'paused'
         }
-        
+
         new_event_id = event_service.create_event(duplicate_data, group_id)
         
         flash('Event duplicated successfully!', 'success')

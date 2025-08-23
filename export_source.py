@@ -28,9 +28,9 @@ def export_project_source():
         os.makedirs(output_dir)
         print(f"Created directory: '{output_dir}'")
 
-    # Generate the dated output filename.
-    current_date = datetime.now().strftime('%Y-%m-%d')
-    output_filename = os.path.join(output_dir, f'{current_date}_all_source_code.txt')
+    # Generate the dated and timed output filename.
+    timestamp_str = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    output_filename = os.path.join(output_dir, f'{timestamp_str}_all_source_code.txt')
     
     print(f"Starting export... Output will be saved to: {output_filename}")
     

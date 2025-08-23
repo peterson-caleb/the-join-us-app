@@ -8,11 +8,13 @@ class Event:
     """
     Event model representing a single event in the RSVP system.
     """
-    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=24, details=""):
+    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=24, details="", location=None, start_time=None):
         self.name = name
         self.date = date
         self.capacity = capacity
         self.details = details
+        self.location = location
+        self.start_time = start_time
         self.invitees = []
         self.created_at = datetime.utcnow()
         self.event_code = self._generate_event_code()
@@ -50,6 +52,8 @@ class Event:
             capacity=data['capacity'],
             invitation_expiry_hours=invitation_expiry_hours,
             details=data.get('details', ""),
+            location=data.get('location'),
+            start_time=data.get('start_time'),
             # --- NEW: Field for multi-tenancy ---
             group_id=data.get('group_id')
         )
@@ -70,6 +74,8 @@ class Event:
             "date": date_str,
             "capacity": self.capacity,
             "details": self.details,
+            "location": self.location,
+            "start_time": self.start_time,
             "invitees": self.invitees,
             "created_at": self.created_at,
             "event_code": self.event_code,
