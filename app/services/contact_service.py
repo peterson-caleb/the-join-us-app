@@ -21,6 +21,9 @@ class ContactService:
         contacts = list(self.contacts_collection.find(query))
         for contact in contacts:
             contact['_id'] = str(contact['_id'])
+            # Convert the group_id to a string to make it JSON serializable
+            if 'group_id' in contact:
+                contact['group_id'] = str(contact['group_id'])
         return contacts
 
     def get_contact(self, group_id, contact_id):

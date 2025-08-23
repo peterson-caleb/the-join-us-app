@@ -126,6 +126,14 @@
                 <div class="card-body">
                     <form action="{{ url_for('events.add_invitees', event_id=event._id) }}" method="POST">
                         <div class="mb-3">
+                            <label for="tag-filter-select" class="form-label">Filter by Tags:</label>
+                            <select id="tag-filter-select" class="form-select" multiple>
+                                {% for tag in all_tags %}
+                                    <option value="{{ tag }}">{{ tag }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
                             <label for="invitees-select" class="form-label">Select people to invite:</label>
                             <select name="invitees_to_add" id="invitees-select" class="form-select" multiple>
                                 {% for contact in contacts %}
@@ -147,20 +155,13 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/dragula@3.7.3/dist/dragula.min.js"></script>
 <script>
+    // Pass contacts data from Flask to JavaScript
+    const allContacts = {{ contacts|tojson }};
+    const currentInviteeIds = {{ current_invitee_ids|tojson|safe }};
+</script>
+<script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2 on the invitee selection box
-    $('#invitees-select').select2({
-        theme: 'bootstrap-5',
-        width: '100%',
-        placeholder: 'Type a name to search...'
-    });
-    
-    // Re-initialize tooltips after changes
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-
+    // Initialize Dragula for reordering
     var drake = dragula([document.getElementById('inviteeList')]);
     drake.on('drop', (el, target) => {
         const inviteeOrder = Array.from(target.children).map(item => item.dataset.id);
@@ -169,6 +170,56 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ invitee_order: inviteeOrder })
         }).catch(err => console.error('Error reordering invitees:', err));
+    });
+
+    // Initialize Select2 plugins
+    const tagFilterSelect = $('#tag-filter-select');
+    const inviteesSelect = $('#invitees-select');
+
+    tagFilterSelect.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Filter contacts by tag...'
+    });
+
+    inviteesSelect.select2({
+        theme: 'bootstrap-5',
+        width: '100%',
+        placeholder: 'Type a name to search...'
+    });
+
+    // Handle tag filtering logic
+    tagFilterSelect.on('change', function() {
+        const selectedTags = $(this).val();
+        
+        // Filter the full contact list based on selected tags
+        const filteredContacts = allContacts.filter(contact => {
+            // Always exclude contacts already in the invitee list
+            if (currentInviteeIds.includes(contact._id)) {
+                return false;
+            }
+            // If no tags are selected, include all
+            if (!selectedTags || selectedTags.length === 0) {
+                return true;
+            }
+            // Otherwise, check if the contact has at least one of the selected tags
+            return contact.tags && contact.tags.some(tag => selectedTags.includes(tag));
+        });
+
+        // Clear the current options and repopulate the invitee select list
+        inviteesSelect.empty();
+        filteredContacts.forEach(contact => {
+            const newOption = new Option(`${contact.name} (${contact.phone})`, contact._id, false, false);
+            inviteesSelect.append(newOption);
+        });
+        // Trigger a change to update the Select2 UI
+        inviteesSelect.trigger('change');
+    });
+
+    // Re-initialize tooltips after any changes
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
     });
 });
 </script>
