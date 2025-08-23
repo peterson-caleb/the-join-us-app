@@ -2,6 +2,65 @@
 
 {% block title %}Contacts{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* On mobile, transform the table into a list of cards */
+    @media (max-width: 767.98px) {
+        #contacts-table thead {
+            display: none; /* Hide table headers on mobile */
+        }
+
+        #contacts-table, 
+        #contacts-table tbody, 
+        #contacts-table tr, 
+        #contacts-table td {
+            display: block; /* Make table elements stack */
+        }
+
+        #contacts-table tr {
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-lg);
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        #contacts-table td {
+            padding: 0.25rem 0;
+            border: none;
+            display: grid; /* Use grid for layout inside the card */
+            grid-template-columns: 1fr auto;
+            align-items: center;
+        }
+        
+        #contacts-table td[data-label="Name"] {
+            font-size: var(--text-lg);
+            font-weight: var(--font-semibold);
+            color: var(--gray-800);
+        }
+
+        #contacts-table td[data-label="Phone"],
+        #contacts-table td[data-label="Tags"] {
+            grid-column: 1 / -1; /* Make these span the full width */
+        }
+        
+        #contacts-table td[data-label="Phone"] {
+             color: var(--gray-500);
+        }
+        
+        #contacts-table td[data-label="Tags"] {
+            margin-top: 0.5rem;
+        }
+
+        #contacts-table td[data-label="Actions"] {
+            grid-column: 2; /* Position actions in the second column */
+            grid-row: 1;    /* Position actions on the first row */
+            justify-self: end;
+        }
+    }
+</style>
+{% endblock %}
+
+
 {% block content %}
 <div id="contacts-page-wrapper">
     <div class="row">
@@ -40,9 +99,9 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-body">
+                <div class="card-body p-0 p-md-4">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table" id="contacts-table">
                             <thead>
                                 <tr>
                                     <th>Name</th>
@@ -54,14 +113,14 @@
                             <tbody>
                                 {% for contact in master_list %}
                                 <tr>
-                                    <td>{{ contact.name }}</td>
-                                    <td>{{ contact.phone }}</td>
-                                    <td>
+                                    <td data-label="Name">{{ contact.name }}</td>
+                                    <td data-label="Phone">{{ contact.phone }}</td>
+                                    <td data-label="Tags">
                                         {% for tag in contact.tags %}
                                         <span class="badge bg-secondary">{{ tag }}</span>
                                         {% endfor %}
                                     </td>
-                                    <td class="text-end">
+                                    <td data-label="Actions" class="text-end">
                                         <div class="dropdown">
                                             <button class="btn btn-sm btn-outline-secondary"
                                                     type="button"
@@ -72,22 +131,10 @@
                                                 <i class="bi bi-three-dots-vertical"></i>
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="actionsMenu-{{ contact._id }}">
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
-                                                        <i class="bi bi-clock-history me-2"></i>Message History
-                                                    </a>
-                                                </li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editContactModal-{{ contact._id }}">
-                                                        <i class="bi bi-pencil me-2"></i>Edit Contact
-                                                    </button>
-                                                </li>
+                                                <li><a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}"><i class="bi bi-clock-history me-2"></i>Message History</a></li>
+                                                <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editContactModal-{{ contact._id }}"><i class="bi bi-pencil me-2"></i>Edit Contact</button></li>
                                                 <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}">
-                                                        <i class="bi bi-trash me-2"></i>Delete Contact
-                                                    </button>
-                                                </li>
+                                                <li><button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}"><i class="bi bi-trash me-2"></i>Delete Contact</button></li>
                                             </ul>
                                         </div>
                                     </td>
@@ -106,92 +153,60 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="{{ url_for('contacts.manage_master_list') }}" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Contact</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header"><h5 class="modal-title">Add New Contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" name="name" required>
-                    </div>
+                    <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" required></div>
                     <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" name="phone" required 
-                                pattern="\+[1-9]\d{1,14}"
-                                title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
+                        <input type="tel" class="form-control" name="phone" required pattern="\+[1-9]\d{1,14}" title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
                         <small class="form-text text-muted">Format: +12223334444</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Tags</label>
-                        <input type="text" class="form-control" name="tags" 
-                                placeholder="Enter tags separated by commas">
+                        <input type="text" class="form-control" name="tags" placeholder="Enter tags separated by commas">
                         <small class="form-text text-muted">Example: family, friends, work</small>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Add Contact</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Add Contact</button></div>
             </form>
         </div>
     </div>
 </div>
-
 {% for contact in master_list %}
 <div class="modal fade" id="editContactModal-{{ contact._id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form action="{{ url_for('contacts.edit_contact', contact_id=contact._id) }}" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title">Edit Contact</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header"><h5 class="modal-title">Edit Contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" name="name" value="{{ contact.name }}" required>
-                    </div>
+                    <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" value="{{ contact.name }}" required></div>
                     <div class="mb-3">
                         <label class="form-label">Phone Number</label>
-                        <input type="tel" class="form-control" name="phone" value="{{ contact.phone }}" required
-                                pattern="\+[1-9]\d{1,14}"
-                                title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
+                        <input type="tel" class="form-control" name="phone" value="{{ contact.phone }}" required pattern="\+[1-9]\d{1,14}" title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
                         <small class="form-text text-muted">Format: +12223334444</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Tags</label>
-                        <input type="text" class="form-control" name="tags" 
-                                value="{{ contact.tags|join(', ') }}"
-                                placeholder="Enter tags separated by commas">
+                        <input type="text" class="form-control" name="tags" value="{{ contact.tags|join(', ') }}" placeholder="Enter tags separated by commas">
                         <small class="form-text text-muted">Example: family, friends, work</small>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
             </form>
         </div>
     </div>
 </div>
-
 <div class="modal fade" id="deleteContactModal-{{ contact._id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Deletion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title">Confirm Deletion</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <p>Are you sure you want to delete the contact "<strong>{{ contact.name }}</strong>"?</p>
                 <p class="text-danger">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ url_for('contacts.delete_contact', contact_id=contact._id) }}" method="POST">
-                    <button type="submit" class="btn btn-danger">Delete Contact</button>
-                </form>
+                <form action="{{ url_for('contacts.delete_contact', contact_id=contact._id) }}" method="POST"><button type="submit" class="btn btn-danger">Delete Contact</button></form>
             </div>
         </div>
     </div>
@@ -218,25 +233,17 @@ $(document).ready(function() {
 document.addEventListener('DOMContentLoaded', function() {
     // Find all dropdown toggles that use the fixed positioning strategy.
     const dropdownToggles = document.querySelectorAll('[data-bs-popper-config*="fixed"]');
-
     let activeDropdownInstance = null;
-
-    // Create a single function to handle the position update.
     const updatePosition = () => {
         if (activeDropdownInstance) {
             activeDropdownInstance.update();
         }
     };
-
     dropdownToggles.forEach(toggle => {
-        // When a dropdown is shown, find its instance and add a scroll listener.
         toggle.addEventListener('shown.bs.dropdown', event => {
             activeDropdownInstance = bootstrap.Dropdown.getInstance(event.target);
-            // Listen for scroll events on the main window (and parents).
             window.addEventListener('scroll', updatePosition, true);
         });
-
-        // When the dropdown is hidden, remove the scroll listener for performance.
         toggle.addEventListener('hidden.bs.dropdown', () => {
             window.removeEventListener('scroll', updatePosition, true);
             activeDropdownInstance = null;
