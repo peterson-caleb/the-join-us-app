@@ -908,3 +908,8 @@ p {
 #contacts-page-wrapper .card {
     overflow: visible;
 }
+
+#contacts-page-wrapper .card:hover {
+    transform: none;
+    box-shadow: var(--shadow-lg); /* Keep a shadow effect on hover */
+}
