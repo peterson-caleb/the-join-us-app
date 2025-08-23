@@ -70,13 +70,18 @@ def delete_contact(contact_id):
 @require_active_group
 def edit_contact(contact_id):
     group_id = current_user.active_group_id
-    contact_data = {
-        'name': request.form['name'],
-        'phone': request.form['phone'],
-        'tags': [tag.strip() for tag in request.form['tags'].split(',') if tag.strip()]
-    }
-    contact_service.update_contact(group_id, contact_id, contact_data)
-    flash('Contact updated successfully!', 'success')
+    # --- MODIFICATION START: Added error handling for robustness ---
+    try:
+        contact_data = {
+            'name': request.form['name'],
+            'phone': request.form['phone'],
+            'tags': [tag.strip() for tag in request.form['tags'].split(',') if tag.strip()]
+        }
+        contact_service.update_contact(group_id, contact_id, contact_data)
+        flash('Contact updated successfully!', 'success')
+    except Exception as e:
+        flash(f"An error occurred while updating the contact: {str(e)}", "error")
+    # --- MODIFICATION END ---
     return redirect(url_for('contacts.manage_master_list'))
 
 @bp.route('/contact/<contact_id>/history')
