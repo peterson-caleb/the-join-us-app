@@ -59,12 +59,10 @@
   --danger-700: #b91c1c;
   --danger-800: #991b1b;
   --danger-900: #7f1d1d;
-
   /* --- NEW ACCENT COLOR --- */
   --accent-400: #a78bfa;
   --accent-500: #8b5cf6;
   --accent-600: #7c3aed;
-
   /* Neutral Colors */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
@@ -82,7 +80,7 @@
   --font-family-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
   /* Font Sizes - Enhanced Typography Scale */
-  --text-xs: 0.75rem;     /* 12px */
+  --text-xs: 0.75rem;    /* 12px */
   --text-sm: 0.875rem;    /* 14px */
   --text-base: 1rem;      /* 16px */
   --text-lg: 1.125rem;    /* 18px */
@@ -130,7 +128,6 @@
   --radius-xl: 0.75rem;
   --radius-2xl: 1rem;
   --radius-3xl: 1.5rem;
-
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -874,11 +871,11 @@ p {
 @keyframes slideUp {
   from { 
     opacity: 0; 
-    transform: translateY(20px); 
+    transform: translateY(20px);
   }
   to { 
     opacity: 1; 
-    transform: translateY(0); 
+    transform: translateY(0);
   }
 }
 
@@ -902,9 +899,4 @@ p {
     box-shadow: none;
     border: 1px solid var(--gray-300);
   }
-}
-
-/* Fix for dropdown clipping in responsive tables */
-.table-responsive {
-    overflow-y: visible !important;
 }
