@@ -192,29 +192,29 @@
     <script>!(function(e,t){const a="featurebase-sdk";function n(){if(!t.getElementById(a)){var e=t.createElement("script");(e.id=a),(e.src="https://do.featurebase.app/js/sdk.js"),t.getElementsByTagName("script")[0].parentNode.insertBefore(e,t.getElementsByTagName("script")[0])}}"function"!=typeof e.Featurebase&&(e.Featurebase=function(){(e.Featurebase.q=e.Featurebase.q||[]).push(arguments)}),"complete"===t.readyState||"interactive"===t.readyState?n():t.addEventListener("DOMContentLoaded",n)})(window,document);</script>
 
     <script>
-    {% if current_user is defined and current_user.is_authenticated %}
-        Featurebase("initialize_feedback_widget", {
-            organization: "join-us-app-demo",
-            theme: "light",
-            placement: "right",
-            email: "{{ current_user.email }}",
-            defaultBoard: "General Feedback",
-            locale: "en",
-            metadata: {
-                userId: "{{ current_user.id }}",
-                username: "{{ current_user.username }}"
-            }
-        });
-    {% else %}
-        Featurebase("initialize_feedback_widget", {
-            organization: "join-us-app-demo",
-            theme: "light",
-            placement: "right",
-            defaultBoard: "General Feedback",
-            locale: "en",
-            metadata: null
-        });
-    {% endif %}
+        {% if current_user is defined and current_user.is_authenticated %}
+            Featurebase("initialize_feedback_widget", {
+                organization: "thejoinusapp",
+                theme: "light",
+                placement: "right",
+                email: "{{ current_user.email }}",
+                defaultBoard: "General Feedback",
+                locale: "en",
+                metadata: {
+                    userId: "{{ current_user.id }}",
+                    username: "{{ current_user.username }}"
+                }
+            });
+        {% else %}
+            Featurebase("initialize_feedback_widget", {
+                organization: "thejoinusapp",
+                theme: "light",
+                placement: "right",
+                defaultBoard: "General Feedback",
+                locale: "en",
+                metadata: null
+            });
+        {% endif %}
     </script>
 </body>
 </html>
