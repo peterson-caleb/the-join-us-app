@@ -4,226 +4,39 @@
 
 {% block extra_css %}
 <style>
-    /* Enhanced Event Cards */
-    .event-card {
-        transition: all 0.3s ease;
-        border: 1px solid var(--secondary-200); /* MODIFIED: Was 'none' */
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        overflow: hidden;
-        background: white;
-        position: relative;
-    }
-
-    .event-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-
-    .event-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6);
-    }
-
-    .event-card-header {
-        background: linear-gradient(135deg, #f8fafc, #ffffff);
-        border-bottom: 1px solid #e2e8f0;
-        padding: 2rem;
-        position: relative;
-    }
-
-    .event-card-body {
-        padding: 2rem;
-    }
-
-    .event-card-footer {
-        background: #f8fafc;
-        border-top: 1px solid #e2e8f0;
-        padding: 1.5rem 2rem;
-    }
-
-    .event-title {
-        font-size: var(--text-xl);
-        font-weight: var(--font-semibold);
-        color: var(--gray-900);
-        line-height: var(--leading-snug);
-        margin-bottom: 0.75rem;
-        font-family: var(--font-family-heading);
-    }
-
-    .event-badges {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-    }
-
-    .event-badge {
-        background: linear-gradient(135deg, #0ea5e9, #0284c7);
-        color: white;
-        padding: 0.375rem 0.875rem;
-        border-radius: 2rem;
-        font-size: var(--text-xs);
-        font-weight: var(--font-medium);
-        font-family: var(--font-family-primary);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-    }
-
-    .event-badge.info {
-        background: linear-gradient(135deg, #06b6d4, #0891b2);
-    }
-
-    .event-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
-    .event-actions .btn {
-        margin: 0;
-        font-size: var(--text-sm);
-        font-weight: var(--font-medium);
-        font-family: var(--font-family-primary);
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        transition: all 0.2s ease;
-    }
-
-    .capacity-section {
-        background: linear-gradient(135deg, #f1f5f9, #f8fafc);
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .capacity-header {
-        font-size: var(--text-base);
-        font-weight: var(--font-semibold);
-        font-family: var(--font-family-heading);
-        color: var(--gray-700);
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .capacity-progress {
-        height: 32px;
-        background-color: #e2e8f0;
-        border-radius: 1rem;
-        overflow: hidden;
-        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-        margin-bottom: 1rem;
-    }
-
-    .capacity-stats {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.875rem;
-        color: #64748b;
-        margin-bottom: 1rem;
-    }
-
-    .stats-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-
-    .stat-item {
-        background: white;
-        padding: 1rem;
-        border-radius: 0.5rem;
-        border-left: 3px solid #e2e8f0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        transition: all 0.2s ease;
-    }
-
-    .stat-item:hover {
-        border-left-color: #0ea5e9;
-        transform: translateX(2px);
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        color: #64748b;
-        font-weight: 500;
-    }
-
-    .stat-value {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #1e293b;
-    }
-
-    .stat-value.danger {
-        color: #dc2626;
-    }
-
-    .expiry-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #64748b;
-        font-size: 0.875rem;
-    }
-
-    /* Empty state styling */
-    .empty-state {
-        text-align: center;
-        padding: 3rem 2rem;
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    }
-
-    .empty-state-icon {
-        font-size: 3rem;
-        color: #94a3b8;
-        margin-bottom: 1rem;
-    }
-
-    /* Responsive adjustments */
+    /* Styles remain the same */
+    .event-card { transition: all 0.3s ease; border: 1px solid var(--secondary-200); border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; background: white; position: relative; }
+    .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+    .event-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6); }
+    .event-card-header { background: linear-gradient(135deg, #f8fafc, #ffffff); border-bottom: 1px solid #e2e8f0; padding: 2rem; position: relative; }
+    .event-card-body { padding: 2rem; }
+    .event-card-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1.5rem 2rem; }
+    .event-title { font-size: var(--text-xl); font-weight: var(--font-semibold); color: var(--gray-900); line-height: var(--leading-snug); margin-bottom: 0.75rem; font-family: var(--font-family-heading); }
+    .event-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .event-badge { background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; padding: 0.375rem 0.875rem; border-radius: 2rem; font-size: var(--text-xs); font-weight: var(--font-medium); font-family: var(--font-family-primary); display: inline-flex; align-items: center; gap: 0.375rem; }
+    .event-badge.info { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .event-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; align-items: center; }
+    .event-actions .btn { margin: 0; font-size: var(--text-sm); font-weight: var(--font-medium); font-family: var(--font-family-primary); padding: 0.5rem 1rem; border-radius: 0.5rem; transition: all 0.2s ease; }
+    .capacity-section { background: linear-gradient(135deg, #f1f5f9, #f8fafc); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .capacity-header { font-size: var(--text-base); font-weight: var(--font-semibold); font-family: var(--font-family-heading); color: var(--gray-700); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .capacity-progress { height: 32px; background-color: #e2e8f0; border-radius: 1rem; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06); margin-bottom: 1rem; }
+    .capacity-stats { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #64748b; margin-bottom: 1rem; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .stat-item { background: white; padding: 1rem; border-radius: 0.5rem; border-left: 3px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; }
+    .stat-item:hover { border-left-color: #0ea5e9; transform: translateX(2px); }
+    .stat-label { font-size: 0.875rem; color: #64748b; font-weight: 500; }
+    .stat-value { font-size: 1rem; font-weight: 600; color: #1e293b; }
+    .stat-value.danger { color: #dc2626; }
+    .expiry-info { display: flex; align-items: center; gap: 0.5rem; color: #64748b; font-size: 0.875rem; }
+    .empty-state { text-align: center; padding: 3rem 2rem; background: white; border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .empty-state-icon { font-size: 3rem; color: #94a3b8; margin-bottom: 1rem; }
     @media (max-width: 768px) {
-        .event-card-header,
-        .event-card-body {
-            padding: 1.5rem;
-        }
-        
-        .event-card-footer {
-            padding: 1rem 1.5rem;
-        }
-
-        .event-actions .btn-label {
-            display: none;
-        }
-        
-        .event-actions {
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.375rem;
-        }
-
-        .stats-grid {
-            grid-template-columns: 1fr;
-            gap: 0.5rem;
-        }
-
-        .capacity-section {
-            padding: 1rem;
-        }
+        .event-card-header, .event-card-body { padding: 1.5rem; }
+        .event-card-footer { padding: 1rem 1.5rem; }
+        .event-actions .btn-label { display: none; }
+        .event-actions { flex-direction: column; align-items: flex-end; gap: 0.375rem; }
+        .stats-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+        .capacity-section { padding: 1rem; }
     }
 </style>
 {% endblock %}
@@ -394,7 +207,7 @@
                 <div class="event-card-footer">
                     <div class="expiry-info">
                         <i class="bi bi-clock"></i>
-                        <span>Invitations expire after <strong>{{ event.invitation_expiry_hours }} hours</strong></span>
+                        <span>Invitations expire after <strong>{{ event.invitation_expiry_hours or default_expiry_hours }} hours</strong></span>
                     </div>
                 </div>
             </div>
@@ -417,7 +230,7 @@
 </div>
 
 <div class="modal fade" id="createEventModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form action="{{ url_for('events.manage_events') }}" method="POST">
                 <div class="modal-header">
@@ -444,21 +257,26 @@
                         <label class="form-label">Location / Address</label>
                         <input type="text" class="form-control" name="location" placeholder="e.g., 123 Main St, Anytown">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Capacity</label>
-                        <input type="number" class="form-control" name="capacity"
-                               required min="1" value="50">
-                        <div class="form-text">
-                            Maximum number of confirmed attendees allowed
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Capacity</label>
+                            <input type="number" class="form-control" name="capacity"
+                                   required min="1" value="50">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Invitation Expiry (Hours)</label>
+                            <input type="number" class="form-control" name="invitation_expiry_hours" min="1" step="any" placeholder="Default: {{ default_expiry_hours }}">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Details</label>
-                        <textarea class="form-control" name="details" rows="3" 
-                                  placeholder="Additional information about the event (optional)"></textarea>
-                        <div class="form-text">
-                            This will be shown to invitees on the RSVP page
-                        </div>
+                        <textarea class="form-control" name="details" rows="2" placeholder="Additional information about the event (optional)"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="allow_rsvp_after_expiry" id="createAllowRsvpAfterExpiry">
+                        <label class="form-check-label" for="createAllowRsvpAfterExpiry">
+                            Allow guests to RSVP after their invitation has expired (if capacity is available)
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -472,7 +290,7 @@
 
 {% for event in events %}
 <div class="modal fade" id="editEventModal-{{ event._id }}" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <form action="{{ url_for('events.edit_event', event_id=event._id) }}" method="POST">
                 <div class="modal-header">
@@ -498,21 +316,26 @@
                         <label class="form-label">Location / Address</label>
                         <input type="text" class="form-control" name="location" value="{{ event.location or '' }}" placeholder="e.g., 123 Main St, Anytown">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Capacity</label>
-                        {% set confirmed = event.invitees|selectattr("status", "equalto", "YES")|list|length %}
-                        <input type="number" class="form-control" name="capacity" value="{{ event.capacity }}" required min="{{ confirmed if confirmed > 0 else 1 }}">
-                        <div class="form-text">
-                            Maximum number of attendees. Currently {{ confirmed }} confirmed.
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                             <label class="form-label">Capacity</label>
+                            {% set confirmed = event.invitees|selectattr("status", "equalto", "YES")|list|length %}
+                            <input type="number" class="form-control" name="capacity" value="{{ event.capacity }}" required min="{{ confirmed if confirmed > 0 else 1 }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Invitation Expiry (Hours)</label>
+                            <input type="number" class="form-control" name="invitation_expiry_hours" value="{{ event.invitation_expiry_hours or '' }}" min="1" step="any" placeholder="Default: {{ default_expiry_hours }}">
                         </div>
                     </div>
-                    <div class="mb-3">
+                     <div class="mb-3">
                         <label class="form-label">Details</label>
-                        <textarea class="form-control" name="details" rows="3" 
-                                  placeholder="Additional information about the event (optional)">{{ event.details or '' }}</textarea>
-                        <div class="form-text">
-                            This will be shown to invitees on the RSVP page
-                        </div>
+                        <textarea class="form-control" name="details" rows="2" placeholder="Additional information about the event (optional)">{{ event.details or '' }}</textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="allow_rsvp_after_expiry" id="editAllowRsvpAfterExpiry-{{ event._id }}" {% if event.allow_rsvp_after_expiry %}checked{% endif %}>
+                        <label class="form-check-label" for="editAllowRsvpAfterExpiry-{{ event._id }}">
+                            Allow guests to RSVP after their invitation has expired (if capacity is available)
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer">
