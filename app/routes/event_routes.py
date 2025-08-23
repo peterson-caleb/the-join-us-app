@@ -1,17 +1,16 @@
 # app/routes/event_routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from .. import event_service, contact_service, sms_service
-from datetime import datetime
+from datetime import datetime, timedelta
 from bson import ObjectId
 from flask_login import login_required, current_user
 import pytz
-from functools import wraps # --- ADD THIS IMPORT ---
+from functools import wraps
 
 bp = Blueprint('events', __name__)
 
-# --- Helper to ensure a group is active ---
 def require_active_group(f):
-    @wraps(f) # --- ADD THIS LINE ---
+    @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
         if not current_user.active_group_id:
@@ -27,17 +26,22 @@ def manage_events():
     
     if request.method == 'POST':
         try:
+            expiry_hours_str = request.form.get('invitation_expiry_hours')
             event_data = {
                 'name': request.form['name'],
                 'date': request.form['date'],
                 'capacity': int(request.form['capacity']),
                 'details': request.form.get('details', ''),
                 'location': request.form.get('location', ''),
-                'start_time': request.form.get('start_time', '')
+                'start_time': request.form.get('start_time', ''),
+                'invitation_expiry_hours': float(expiry_hours_str) if expiry_hours_str else None,
+                'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form
             }
             event_service.create_event(event_data, group_id)
             flash('Event created successfully!', 'success')
-        except ValueError as e:
+        except ValueError:
+            flash(f'Invalid input for capacity or expiry hours. Please enter a number.', 'error')
+        except Exception as e:
             flash(f'Error creating event: {str(e)}', 'error')
         return redirect(url_for('events.manage_events'))
     
@@ -47,33 +51,27 @@ def manage_events():
     now = datetime.now(pytz.UTC)
     today = now.date()
     
-    if not show_past:
-        filtered_events = []
-        for event in events:
-            event_date = event.get('date')
-            if isinstance(event_date, str):
-                try:
-                    event_date_obj = datetime.strptime(event_date, '%Y-%m-%d').date()
-                    if event_date_obj >= today:
-                        filtered_events.append(event)
-                except ValueError:
-                    filtered_events.append(event)
-            elif isinstance(event_date, datetime):
-                if event_date.date() >= today:
-                    filtered_events.append(event)
-            else:
-                filtered_events.append(event)
-        events = filtered_events
-    
+    # Step 1: Normalize all data first, especially converting date strings to datetime objects
     for event in events:
         event['_id'] = str(event['_id'])
-        if isinstance(event.get('date'), str):
+        date_val = event.get('date')
+        if isinstance(date_val, str):
             try:
-                event['date'] = datetime.strptime(event['date'], '%Y-%m-%d')
-            except ValueError:
-                event['date'] = None
-    
-    return render_template('events/list.html', events=events, now=now, show_past=show_past)
+                event['date'] = datetime.strptime(date_val, '%Y-%m-%d')
+            except (ValueError, TypeError):
+                event['date'] = None # Gracefully handle invalid date strings
+
+    # Step 2: Now that all dates are uniform, filter if necessary
+    if not show_past:
+        events = [
+            e for e in events if e.get('date') and e.get('date').date() >= today
+        ]
+
+    # Pass the global default to the template for the 'create' modal
+    default_expiry_hours = current_app.config.get('INVITATION_EXPIRY_HOURS', 24)
+
+    return render_template('events/list.html', events=events, now=now, show_past=show_past, default_expiry_hours=default_expiry_hours)
+
 
 @bp.route('/events/<event_id>/edit', methods=['POST'])
 @require_active_group
@@ -85,20 +83,23 @@ def edit_event(event_id):
             flash('Event not found.', 'error')
             return redirect(url_for('events.manage_events'))
 
+        expiry_hours_str = request.form.get('invitation_expiry_hours')
         event_data = {
             'name': request.form['name'],
             'date': request.form['date'],
             'capacity': int(request.form['capacity']),
             'details': request.form.get('details', ''),
             'location': request.form.get('location', ''),
-            'start_time': request.form.get('start_time', '')
+            'start_time': request.form.get('start_time', ''),
+            'invitation_expiry_hours': float(expiry_hours_str) if expiry_hours_str else None,
+            'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form
         }
         
         event_service.update_event(group_id, event_id, event_data)
         flash('Event updated successfully!', 'success')
         
     except ValueError:
-        flash('Invalid capacity value. Please enter a number.', 'error')
+        flash('Invalid input for capacity or expiry hours. Please enter a number.', 'error')
     except Exception as e:
         flash(f'Error updating event: {str(e)}', 'error')
         
@@ -261,10 +262,32 @@ def rsvp_page(token):
     event, invitee = event_service.find_event_and_invitee_by_token(token)
     if not event or not invitee:
         return render_template("events/rsvp_confirmation.html", success=False, message="This invitation link is invalid or has expired.")
-    if invitee['status'] not in ['invited', 'ERROR']:
-        return render_template("events/rsvp_confirmation.html", success=True, message="Thank you, we have already received your response.")
-    return render_template("events/rsvp_page.html", event=event, invitee=invitee, token=token)
+    
+    # Calculate expiry time to display on the page
+    expiry_datetime_est = None
+    if invitee.get('invited_at') and invitee.get('status') == 'invited':
+        utc = pytz.timezone('UTC')
+        est = pytz.timezone('US/Eastern')
+        
+        invited_at_utc = utc.localize(invitee['invited_at'])
+        expiry_hours = event.invitation_expiry_hours or current_app.config.get('INVITATION_EXPIRY_HOURS', 24)
+        expiry_datetime_utc = invited_at_utc + timedelta(hours=expiry_hours)
+        expiry_datetime_est = expiry_datetime_utc.astimezone(est)
 
+    return render_template("events/rsvp_page.html", event=event, invitee=invitee, token=token, expiry_datetime_est=expiry_datetime_est)
+
+# New API endpoint for dynamic RSVP submission
+@bp.route('/api/rsvp/<token>', methods=['POST'])
+def submit_rsvp_api(token):
+    data = request.get_json()
+    response = data.get('response')
+    
+    success, message = event_service.process_rsvp_from_url(token, response, sms_service)
+    
+    return jsonify({'success': success, 'message': message})
+
+
+# Kept for legacy support in case old SMS links are used
 @bp.route('/rsvp/submit/<token>/<response>', methods=['GET'])
 def submit_rsvp(token, response):
     success, message = event_service.process_rsvp_from_url(token, response, sms_service)

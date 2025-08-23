@@ -26,6 +26,7 @@ class EventService:
 
             file_handler = RotatingFileHandler('logs/event_service.log', maxBytes=1024 * 1024, backupCount=5)
             console_handler = logging.StreamHandler()
+            
             formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             file_handler.setFormatter(formatter)
             console_handler.setFormatter(formatter)
@@ -86,14 +87,27 @@ class EventService:
 
     # SCHEDULER METHODS (NOT group-aware, they run system-wide)
     def process_expired_invitations(self):
-        self.logger.info("Starting expired invitations check (process_expired_invitations)")
+        self.logger.info("Starting expired invitations check")
         now = self.get_current_time()
-        expiry_threshold = now - timedelta(hours=self.invitation_expiry_hours)
-        self.events_collection.update_many(
-            {"automation_status": "active", "invitees": {"$elemMatch": {"status": "invited", "invited_at": {"$lt": expiry_threshold}}}},
-            {"$set": {"invitees.$[elem].status": "EXPIRED", "invitees.$[elem].expired_at": now}},
-            array_filters=[{"elem.status": "invited", "elem.invited_at": {"$lt": expiry_threshold}}]
-        )
+        
+        active_events = self.events_collection.find({"automation_status": "active"})
+        
+        for event_data in active_events:
+            event = Event.from_dict(event_data, self.invitation_expiry_hours)
+            
+            # Use event-specific expiry, or fall back to the global default
+            expiry_hours = event.invitation_expiry_hours if event.invitation_expiry_hours is not None else self.invitation_expiry_hours
+            
+            if not expiry_hours or expiry_hours <= 0:
+                continue
+
+            expiry_threshold = now - timedelta(hours=expiry_hours)
+
+            self.events_collection.update_many(
+                {"_id": event._id, "invitees": {"$elemMatch": {"status": "invited", "invited_at": {"$lt": expiry_threshold}}}},
+                {"$set": {"invitees.$[elem].status": "EXPIRED", "invitees.$[elem].expired_at": now}},
+                array_filters=[{"elem.status": "invited", "elem.invited_at": {"$lt": expiry_threshold}}]
+            )
         self.logger.info("Completed expired invitations check.")
 
     def manage_event_capacity(self, sms_service):
@@ -126,17 +140,34 @@ class EventService:
     
     def process_rsvp_from_url(self, token, response, sms_service):
         event, invitee = self.find_event_and_invitee_by_token(token)
-        if not event or not invitee: return False, "This invitation link is invalid."
-        if invitee['status'] not in ['invited', 'ERROR']: return True, "You have already responded."
+        if not event or not invitee:
+            return False, "This invitation link is invalid."
+
         response = response.upper()
-        if response not in ['YES', 'NO']: return False, "Invalid response provided."
-        
+        if response not in ['YES', 'NO']:
+            return False, "Invalid response provided."
+
+        # If changing response to YES, check for capacity first.
+        # This covers NO -> YES and EXPIRED -> YES.
+        if response == 'YES' and invitee.get('status') != 'YES':
+            # For a regular response change, we only care about confirmed guests.
+            # For an expired guest, we care about confirmed + invited guests.
+            current_confirmed = sum(1 for i in event.invitees if i.get('status') == 'YES')
+            if current_confirmed >= event.capacity:
+                 return False, "Sorry, you cannot change your RSVP to 'YES' as the event is now full."
+
+        # If the user's status is expired, they are still subject to the expiry rules
+        if invitee['status'] == 'EXPIRED':
+            if not event.allow_rsvp_after_expiry:
+                return False, "Sorry, this invitation has expired and cannot be changed."
+
         success = self.update_invitee_status(event._id, invitee['_id'], response)
         
         if success and response == 'YES':
             sms_service.send_confirmation(invitee, event.to_dict())
 
-        return success, f"Thank you! Your response for {event.name} has been recorded."
+        return success, f"Thank you! Your response for {event.name} has been updated."
+
 
     def update_invitee_status(self, event_id, invitee_id, status):
         result = self.events_collection.update_one(
@@ -148,21 +179,21 @@ class EventService:
     def find_event_and_invitee_by_token(self, token):
         event_data = self.events_collection.find_one({"invitees.rsvp_token": token})
         if not event_data: return None, None
-        event = Event.from_dict(event_data)
+        event = Event.from_dict(event_data, self.invitation_expiry_hours)
         invitee = next((i for i in event.invitees if i.get("rsvp_token") == token), None)
         return event, invitee
 
     # --- GROUP-AWARE CRUD METHODS ---
     def get_event(self, group_id, event_id):
         event_data = self.events_collection.find_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
-        return Event.from_dict(event_data) if event_data else None
+        return Event.from_dict(event_data, self.invitation_expiry_hours) if event_data else None
 
     def get_events(self, group_id):
         return list(self.events_collection.find({"group_id": ObjectId(group_id)}))
 
     def create_event(self, event_data, group_id):
         event_data['group_id'] = group_id
-        event = Event.from_dict(event_data, invitation_expiry_hours=self.invitation_expiry_hours)
+        event = Event.from_dict(event_data, self.invitation_expiry_hours)
         result = self.events_collection.insert_one(event.to_dict())
         return str(result.inserted_id)
 

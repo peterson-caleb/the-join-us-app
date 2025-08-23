@@ -26,12 +26,8 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 * **See Who's Coming**: On the RSVP page, give organizers the option to show guests a list of others who have confirmed their attendance.
 
 ### Organizer Tooling
-<<<<<<< HEAD
-* ~ **Event Time & Location Fields**: Add dedicated "Start Time" and "Address" fields to events for more complete invitation details. ~
-=======
 * ~**Event Time & Location Fields**: Add dedicated "Start Time" and "Address" fields to events for more complete invitation details.~
->>>>>>> origin/main
-* **Find contacts with tags in the manage invitees window**:Make use of the contact tags we created.
+* ~ **Find contacts with tags in the manage invitees window**:Make use of the contact tags we created. ~
 * **Adjustable Invitation Expiry**: Allow organizers to set a custom expiration timeout for invitations on a per-event basis. Include a setting to allow expired guests to RSVP if capacity is still available.
 * **Explicit Waitlist Management**: When an event is full, automatically place new "YES" RSVPs onto a waitlist. If a spot opens, the system will automatically promote the first person from the waitlist.
 * **Guest List Export (for Check-in)**: Allow hosts to export the final list of confirmed attendees as a CSV or PDF for use at the event.
