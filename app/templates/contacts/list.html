@@ -4,10 +4,10 @@
 
 {% block extra_css %}
 <style>
-    /* On mobile, transform the table into a list of cards */
-    @media (max-width: 767.98px) {
+    /* On tablets and mobile, transform the table into a list of cards */
+    @media (max-width: 991.98px) {
         #contacts-table thead {
-            display: none; /* Hide table headers on mobile */
+            display: none; /* Hide table headers */
         }
 
         #contacts-table, 
@@ -19,42 +19,54 @@
 
         #contacts-table tr {
             border: 1px solid var(--gray-200);
-            border-radius: var(--radius-lg);
+            border-radius: var(--radius-xl);
             padding: 1rem;
             margin-bottom: 1rem;
+            display: grid;
+            grid-template-columns: 1fr auto; /* Two columns: content and actions */
+            grid-template-rows: auto auto;    /* Two rows: name/phone and tags */
+            grid-template-areas:
+                "main    actions"
+                "tags    tags";
+            gap: 0.25rem 1rem; /* Row and column gap */
         }
 
         #contacts-table td {
-            padding: 0.25rem 0;
+            padding: 0;
             border: none;
-            display: grid; /* Use grid for layout inside the card */
-            grid-template-columns: 1fr auto;
-            align-items: center;
         }
-        
+
+        /* Group Name and Phone into the 'main' grid area */
+        #contacts-table td[data-label="Name"],
+        #contacts-table td[data-label="Phone"] {
+            grid-area: main;
+        }
+
         #contacts-table td[data-label="Name"] {
-            font-size: var(--text-lg);
-            font-weight: var(--font-semibold);
+            font-size: 1.1rem;
+            font-weight: 600;
             color: var(--gray-800);
         }
 
-        #contacts-table td[data-label="Phone"],
-        #contacts-table td[data-label="Tags"] {
-            grid-column: 1 / -1; /* Make these span the full width */
-        }
-        
         #contacts-table td[data-label="Phone"] {
              color: var(--gray-500);
-        }
-        
-        #contacts-table td[data-label="Tags"] {
-            margin-top: 0.5rem;
+             font-size: 0.9rem;
         }
 
+        /* Place Tags in their own row */
+        #contacts-table td[data-label="Tags"] {
+            grid-area: tags;
+            padding-top: 0.5rem;
+            /* Allow tags to wrap gracefully */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        /* Place Actions button in the top-right */
         #contacts-table td[data-label="Actions"] {
-            grid-column: 2; /* Position actions in the second column */
-            grid-row: 1;    /* Position actions on the first row */
-            justify-self: end;
+            grid-area: actions;
+            align-self: start;
         }
     }
 </style>
@@ -99,7 +111,7 @@
     <div class="row">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-body p-0 p-md-4">
+                <div class="card-body p-0 p-lg-4">
                     <div class="table-responsive">
                         <table class="table" id="contacts-table">
                             <thead>
