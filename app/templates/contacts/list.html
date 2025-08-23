@@ -3,98 +3,98 @@
 {% block title %}Contacts{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-12 mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1>Contacts</h1>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContactModal">
-                Add Contact
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Filter by Tags</h5>
-                <form action="{{ url_for('contacts.manage_master_list') }}" method="GET" class="row g-3">
-                    <div class="col-md-10">
-                        <select class="form-control tag-select" name="tags" multiple>
-                            {% for tag in all_tags %}
-                            <option value="{{ tag }}" {% if tag in selected_tags %}selected{% endif %}>{{ tag }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
-                    </div>
-                </form>
+<div id="contacts-page-wrapper">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Contacts</h1>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContactModal">
+                    Add Contact
+                </button>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Phone</th>
-                                <th>Tags</th>
-                                <th class="text-end">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for contact in master_list %}
-                            <tr>
-                                <td>{{ contact.name }}</td>
-                                <td>{{ contact.phone }}</td>
-                                <td>
-                                    {% for tag in contact.tags %}
-                                    <span class="badge bg-secondary">{{ tag }}</span>
-                                    {% endfor %}
-                                </td>
-                                
-                                <td class="text-end">
-                                    <div class="dropdown">
-                                        {# --- FINAL FIX: This attribute moves the menu outside of the clipping container --- #}
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                type="button"
-                                                data-bs-toggle="dropdown"
-                                                data-bs-container="body"
-                                                aria-expanded="false">
-                                            <i class="bi bi-three-dots-vertical"></i>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end">
-                                            <li>
-                                                <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
-                                                    <i class="bi bi-clock-history me-2"></i>Message History
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editContactModal-{{ contact._id }}">
-                                                    <i class="bi bi-pencil me-2"></i>Edit Contact
-                                                </button>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li>
-                                                <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}">
-                                                    <i class="bi bi-trash me-2"></i>Delete Contact
-                                                </button>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Filter by Tags</h5>
+                    <form action="{{ url_for('contacts.manage_master_list') }}" method="GET" class="row g-3">
+                        <div class="col-md-10">
+                            <select class="form-control tag-select" name="tags" multiple>
+                                {% for tag in all_tags %}
+                                <option value="{{ tag }}" {% if tag in selected_tags %}selected{% endif %}>{{ tag }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Tags</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contact in master_list %}
+                                <tr>
+                                    <td>{{ contact.name }}</td>
+                                    <td>{{ contact.phone }}</td>
+                                    <td>
+                                        {% for tag in contact.tags %}
+                                        <span class="badge bg-secondary">{{ tag }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    
+                                    <td class="text-end">
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary"
+                                                    type="button"
+                                                    data-bs-toggle="dropdown"
+                                                    aria-expanded="false">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('contacts.message_history', contact_id=contact._id) }}">
+                                                        <i class="bi bi-clock-history me-2"></i>Message History
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editContactModal-{{ contact._id }}">
+                                                        <i class="bi bi-pencil me-2"></i>Edit Contact
+                                                    </button>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#deleteContactModal-{{ contact._id }}">
+                                                        <i class="bi bi-trash me-2"></i>Delete Contact
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

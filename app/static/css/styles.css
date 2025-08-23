@@ -899,3 +899,12 @@ p {
     border: 1px solid var(--gray-300);
   }
 }
+
+/*
+  Definitive fix for dropdown clipping on the contacts page.
+  This uses a high-specificity selector to force the card containing
+  the contacts table to allow its contents to overflow.
+*/
+#contacts-page-wrapper .card {
+    overflow: visible;
+}
