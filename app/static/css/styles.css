@@ -913,3 +913,12 @@ p {
     transform: none;
     box-shadow: var(--shadow-lg); /* Keep a shadow effect on hover */
 }
+
+.event-card {
+    display: flex;
+    flex-direction: column;
+}
+
+.event-card-body {
+    flex-grow: 1;
+}
