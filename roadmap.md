@@ -13,11 +13,7 @@ This phase focused on evolving the application from a single-user system into a 
 With the multi-tenant foundation in place, the focus now shifts to adding high-value features that dramatically improve the workflow for organizers, guests, and administrators.
 
 ### ⚠️ Immediate Fixes & Quality of Life
-<<<<<<< HEAD
-* ~**Fix Contact Editing**: The "Edit" functionality on the main contact list is not working and needs to be repaired.~
-=======
-* ~**Fix Contact Editing**: The "Edit" functionality on the main contact list is not working and needs to be repaired.~ 
->>>>>>> origin/main
+* 
 
 ### Guest Experience Improvements
 * **"Plus One" / Guest Count Support**: Allow invitees to RSVP for more than one person, with the confirmed count accurately deducted from the event's capacity.
@@ -28,8 +24,8 @@ With the multi-tenant foundation in place, the focus now shifts to adding high-v
 
 ### Organizer Tooling
 * ~**Event Time & Location Fields**: Add dedicated "Start Time" and "Address" fields to events for more complete invitation details.~
-* ~ **Find contacts with tags in the manage invitees window**:Make use of the contact tags we created. ~
-* **Adjustable Invitation Expiry**: Allow organizers to set a custom expiration timeout for invitations on a per-event basis. Include a setting to allow expired guests to RSVP if capacity is still available.
+* ~**Find contacts with tags in the manage invitees window**:Make use of the contact tags we created.~
+* ~**Adjustable Invitation Expiry**: Allow organizers to set a custom expiration timeout for invitations on a per-event basis. Include a setting to allow expired guests to RSVP if capacity is still available.~
 * **Explicit Waitlist Management**: When an event is full, automatically place new "YES" RSVPs onto a waitlist. If a spot opens, the system will automatically promote the first person from the waitlist.
 * **Guest List Export (for Check-in)**: Allow hosts to export the final list of confirmed attendees as a CSV or PDF for use at the event.
 * **Bulk Contact Import (CSV)**: A crucial time-saver that will allow hosts to upload their entire contact list from a CSV file instead of adding them one by one.
