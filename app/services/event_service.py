@@ -95,7 +95,6 @@ class EventService:
         for event_data in active_events:
             event = Event.from_dict(event_data, self.invitation_expiry_hours)
             
-            # Use event-specific expiry, or fall back to the global default
             expiry_hours = event.invitation_expiry_hours if event.invitation_expiry_hours is not None else self.invitation_expiry_hours
             
             if not expiry_hours or expiry_hours <= 0:
@@ -147,16 +146,11 @@ class EventService:
         if response not in ['YES', 'NO']:
             return False, "Invalid response provided."
 
-        # If changing response to YES, check for capacity first.
-        # This covers NO -> YES and EXPIRED -> YES.
         if response == 'YES' and invitee.get('status') != 'YES':
-            # For a regular response change, we only care about confirmed guests.
-            # For an expired guest, we care about confirmed + invited guests.
             current_confirmed = sum(1 for i in event.invitees if i.get('status') == 'YES')
             if current_confirmed >= event.capacity:
                  return False, "Sorry, you cannot change your RSVP to 'YES' as the event is now full."
 
-        # If the user's status is expired, they are still subject to the expiry rules
         if invitee['status'] == 'EXPIRED':
             if not event.allow_rsvp_after_expiry:
                 return False, "Sorry, this invitation has expired and cannot be changed."
@@ -207,6 +201,20 @@ class EventService:
     def delete_event(self, group_id, event_id):
         result = self.events_collection.delete_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
         return result.deleted_count > 0
+
+    def delete_events_for_group(self, group_id, owner_id):
+        """
+        Deletes all events associated with a group, but only if the
+        requesting user is the owner of that group.
+        """
+        # First, verify the user owns the group by checking the groups collection.
+        # This is an extra layer of security.
+        group = self.db.groups.find_one({'_id': ObjectId(group_id), 'owner_id': ObjectId(owner_id)})
+        if not group:
+            raise PermissionError("User does not own this group, cannot delete its events.")
+            
+        result = self.events_collection.delete_many({"group_id": ObjectId(group_id)})
+        return result.deleted_count
 
     def add_invitees(self, group_id, event_id, invitees):
         event = self.get_event(group_id, event_id)

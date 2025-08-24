@@ -25,13 +25,18 @@
                                     <h6 class="mb-0">{{ group.name }}</h6>
                                     <small class="text-muted">You are the owner of this group.</small>
                                 </div>
-                                <div>
+                                <div class="d-flex align-items-center">
                                     {% if group._id|string == current_user.active_group_id_str %}
                                         <span class="badge bg-primary rounded-pill me-2">Active</span>
                                     {% else %}
                                         <a href="{{ url_for('groups.switch', group_id=group._id) }}" class="btn btn-sm btn-outline-primary me-2">Activate</a>
                                     {% endif %}
-                                    {# Edit/Delete buttons will be added in the next step #}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#editGroupModal-{{ group._id }}">
+                                        Edit
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteGroupModal-{{ group._id }}">
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -62,4 +67,58 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for Edit and Delete -->
+{% for group in user_groups %}
+<!-- Edit Modal -->
+<div class="modal fade" id="editGroupModal-{{ group._id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('groups.edit_group', group_id=group._id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Group Name</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name-{{ group._id }}" class="form-label">Group Name</label>
+                        <input type="text" class="form-control" id="name-{{ group._id }}" name="name" value="{{ group.name }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteGroupModal-{{ group._id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form action="{{ url_for('groups.delete_group', group_id=group._id) }}" method="POST">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to permanently delete the group "<strong>{{ group.name }}</strong>"?</p>
+                    <p class="text-danger"><strong>Warning:</strong> This will also delete all events associated with this group. This action cannot be undone.</p>
+                    <hr>
+                    <div class="mb-3">
+                        <label for="confirmation_text-{{ group._id }}" class="form-label">To confirm, please type the group's name:</label>
+                        <input type="text" class="form-control" id="confirmation_text-{{ group._id }}" name="confirmation_text" required autocomplete="off" pattern="{{ group.name }}">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}
