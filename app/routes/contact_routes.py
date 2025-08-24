@@ -1,20 +1,32 @@
 # app/routes/contact_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from .. import contact_service, message_log_service
+from .. import contact_service, message_log_service, user_service
 from flask_login import login_required, current_user
 from functools import wraps
 
 bp = Blueprint('contacts', __name__)
 
-# This decorator is no longer needed here because contacts are not group-dependent.
-# We will use @login_required directly.
+# --- Public route for contact collection via token ---
+@bp.route('/c/<token>', methods=['GET', 'POST'])
+def add_contact_from_link(token):
+    owner = user_service.get_user_by_contact_token(token)
+    if not owner:
+        flash("This contact collection link is invalid or has expired.", "error")
+        return redirect(url_for('home'))
 
-# --- Public route, does NOT require login ---
-@bp.route('/join', methods=['GET', 'POST'])
-def join_list():
-    # This feature will be replaced by user-specific contact collection links
-    flash("Public sign-ups are disabled.", "info")
-    return render_template('contacts/join.html', disabled=True)
+    if request.method == 'POST':
+        contact_data = {
+            'name': request.form['name'],
+            'phone': request.form['phone'],
+            'tags': [] # Public additions don't get tags initially
+        }
+        try:
+            contact_service.create_contact(contact_data, owner.id)
+            return redirect(url_for('contacts.join_success'))
+        except ValueError as e:
+            flash(str(e), 'error')
+        
+    return render_template('contacts/public_add.html', owner=owner)
 
 @bp.route('/join-success')
 def join_success():
@@ -80,17 +92,13 @@ def edit_contact(contact_id):
 @bp.route('/contact/<contact_id>/history')
 @login_required
 def message_history(contact_id):
-    # Note: Message logs are still associated with a group_id. This is acceptable
-    # as it shows which group's event triggered the message. We are just fetching
-    # the contact by the owner.
     owner_id = current_user.id
     contact = contact_service.get_contact(owner_id, contact_id)
     if not contact:
         flash('Contact not found.', 'error')
+        # --- THIS IS THE FIX ---
         return redirect(url_for('contacts.manage_contacts'))
         
-    # This logic may need to be revisited later if message logs should also be user-owned
-    # For now, we find all logs sent to this contact's ID, regardless of group
     logs = message_log_service.get_logs_for_contact(contact_id)
     
     return render_template('contacts/history.html', contact=contact, logs=logs)

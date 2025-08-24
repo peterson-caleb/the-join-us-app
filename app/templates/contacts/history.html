@@ -12,7 +12,8 @@
                     <h1>Message History</h1>
                     <p class="text-muted mb-0">For {{ contact.name }} ({{ contact.phone }})</p>
                 </div>
-                <a href="{{ url_for('contacts.manage_master_list') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Contacts</a>
+                <!-- THIS IS THE FIX -->
+                <a href="{{ url_for('contacts.manage_contacts') }}" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Back to Contacts</a>
             </div>
         </div>
     </div>
@@ -25,7 +26,6 @@
                 <li class="list-group-item">
                     <div class="d-flex w-100 justify-content-between">
                         <h5 class="mb-1">
-                            {# This part of the logic needs to be added to your log entries #}
                             {% if log.direction == 'outgoing' %}
                                 <i class="bi bi-arrow-up-right-circle-fill text-primary"></i> Outgoing
                             {% else %}
@@ -33,7 +33,6 @@
                             {% endif %}
                             - <span class="text-capitalize">{{ log.get('message_type', 'General').replace('_', ' ') }}</span>
                         </h5>
-                        {# THIS IS THE FIX: Changed log.created_at to log.timestamp #}
                         <small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</small>
                     </div>
                     <p class="mb-1"><code>{{ log.message_body }}</code></p>
@@ -41,7 +40,7 @@
                         <strong>Status:</strong> 
                         <span class="badge 
                             {% if log.status == 'sent' or log.status == 'RECEIVED' %}bg-success
-                            {% elif log.status == 'failed' or log.status == 'ERROR' %}bg-danger
+                            {% elif log.status == 'failed' or log.get('status') == 'ERROR' %}bg-danger
                             {% elif log.status == 'blocked' %}bg-warning
                             {% else %}bg-secondary
                             {% endif %}">

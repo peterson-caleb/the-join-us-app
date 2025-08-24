@@ -22,10 +22,24 @@
                             <label for="password" class="form-label">Password</label>
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="invitation_code" class="form-label">Invitation Code</label>
-                            <input type="text" class="form-control" id="invitation_code" name="invitation_code" required>
-                        </div>
+
+                        {% if is_code_valid %}
+                            <input type="hidden" name="invitation_code_hidden" value="{{ code_from_url }}">
+                            <div class="alert alert-success">
+                                <i class="bi bi-check-circle-fill me-2"></i>Invitation code applied successfully.
+                            </div>
+                        {% else %}
+                            <div class="mb-3">
+                                <label for="invitation_code" class="form-label">Invitation Code</label>
+                                <input type="text" class="form-control {% if code_from_url and not is_code_valid %}is-invalid{% endif %}" id="invitation_code" name="invitation_code" required>
+                                {% if code_from_url and not is_code_valid %}
+                                    <div class="invalid-feedback">
+                                        The invitation code from your link is invalid or has expired. Please enter a valid one.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Register</button>
                         </div>

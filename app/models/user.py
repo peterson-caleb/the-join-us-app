@@ -2,9 +2,10 @@
 from flask_login import UserMixin
 from bson import ObjectId
 from datetime import datetime
+import secrets
 
 class User(UserMixin):
-    def __init__(self, username, email, password_hash, is_admin=False, registration_method=None, _id=None, active_group_id=None, created_at=None):
+    def __init__(self, username, email, password_hash, is_admin=False, registration_method=None, _id=None, active_group_id=None, created_at=None, contact_collection_token=None):
         self.username = username
         self.email = email
         self.password_hash = password_hash
@@ -13,10 +14,8 @@ class User(UserMixin):
         self.created_at = created_at or datetime.utcnow()
         self._id = _id or ObjectId()
         self.active_group_id = active_group_id
+        self.contact_collection_token = contact_collection_token or secrets.token_urlsafe(24)
         
-        # REMOVED: group_memberships and group_invitations are no longer needed.
-        # Group ownership is now stored on the group document itself.
-
     @property
     def id(self):
         return str(self._id)
@@ -36,7 +35,8 @@ class User(UserMixin):
             registration_method=data.get('registration_method'),
             _id=data.get('_id'),
             active_group_id=data.get('active_group_id'),
-            created_at=data.get('created_at')
+            created_at=data.get('created_at'),
+            contact_collection_token=data.get('contact_collection_token')
         )
 
     def to_dict(self):
@@ -48,5 +48,6 @@ class User(UserMixin):
             "is_admin": self.is_admin,
             "registration_method": self.registration_method,
             "created_at": self.created_at,
-            "active_group_id": self.active_group_id
+            "active_group_id": self.active_group_id,
+            "contact_collection_token": self.contact_collection_token
         }

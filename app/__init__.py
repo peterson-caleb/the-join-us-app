@@ -1,5 +1,5 @@
 # app/__init__.py
-from flask import Flask, render_template, g
+from flask import Flask, render_template, g, session
 from flask_pymongo import PyMongo
 from flask_login import LoginManager, login_required, current_user
 from .config import Config
@@ -20,6 +20,7 @@ message_log_service = None
 dashboard_service = None
 group_service = None
 admin_dashboard_service = None
+system_settings_service = None
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -33,7 +34,7 @@ def create_app(config_class=Config):
     login_manager.login_message_category = 'info'
 
     # Initialize services
-    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service, dashboard_service, group_service, admin_dashboard_service
+    global event_service, contact_service, sms_service, user_service, registration_code_service, task_scheduler, message_log_service, dashboard_service, group_service, admin_dashboard_service, system_settings_service
     from .services.event_service import EventService
     from .services.contact_service import ContactService
     from .services.sms_service import SMSService
@@ -43,8 +44,12 @@ def create_app(config_class=Config):
     from .services.dashboard_service import DashboardService
     from .services.group_service import GroupService
     from .services.admin_dashboard_service import AdminDashboardService
+    from .services.system_settings_service import SystemSettingsService
     from .scheduler import TaskScheduler
     
+    with app.app_context():
+        system_settings_service = SystemSettingsService(mongo.db)
+
     message_log_service = MessageLogService(mongo.db)
     dashboard_service = DashboardService(mongo.db)
     group_service = GroupService(mongo.db)
@@ -56,7 +61,8 @@ def create_app(config_class=Config):
         twilio_phone=app.config['TWILIO_PHONE'],
         message_log_service=message_log_service,
         base_url=app.config['BASE_URL'],
-        enabled=app.config['SMS_ENABLED']
+        enabled=app.config['SMS_ENABLED'],
+        settings_service=system_settings_service
     )
     
     event_service = EventService(
@@ -79,42 +85,51 @@ def create_app(config_class=Config):
     
     @app.before_request
     def load_user_context():
-        # Initialize context variables
         g.user_groups = []
         g.active_group = None
+        g.is_admin_view_mode = False
 
-        if current_user.is_authenticated:
-            # A user's groups are the ones they own.
-            g.user_groups = group_service.get_groups_by_owner(current_user.id)
+        if not current_user.is_authenticated:
+            return
 
-            if current_user.active_group_id:
-                active_group_doc = group_service.get_group(current_user.active_group_id)
-                
-                # Ensure the active group is actually owned by the current user
-                if active_group_doc and any(str(group['_id']) == str(active_group_doc._id) for group in g.user_groups):
-                    g.active_group = active_group_doc
+        # Handle Admin Contextual View Mode
+        if current_user.is_admin and 'viewing_group_id' in session:
+            g.is_admin_view_mode = True
+            admin_view_group = group_service.get_group(session['viewing_group_id'])
+            if admin_view_group:
+                g.active_group = admin_view_group
+                # Admins still need to see their own groups for the switcher
+                g.user_groups = group_service.get_groups_by_owner(current_user.id)
+                return # Exit early, admin context is set
+
+        # Standard User Context Loading
+        g.user_groups = group_service.get_groups_by_owner(current_user.id)
+
+        if current_user.active_group_id:
+            active_group_doc = group_service.get_group(current_user.active_group_id)
+            
+            if active_group_doc and any(str(group['_id']) == str(active_group_doc._id) for group in g.user_groups):
+                g.active_group = active_group_doc
+            else:
+                new_active_group = g.user_groups[0] if g.user_groups else None
+                if new_active_group:
+                    user_service.switch_active_group(current_user.id, str(new_active_group['_id']))
+                    g.active_group = new_active_group
                 else:
-                    # If active group is invalid or not owned, set a new one or clear it
-                    new_active_group = g.user_groups[0] if g.user_groups else None
-                    if new_active_group:
-                        user_service.switch_active_group(current_user.id, str(new_active_group['_id']))
-                        g.active_group = new_active_group
-                    else:
-                        # User owns no groups, so clear active_group_id
-                        user_service.switch_active_group(current_user.id, None)
-                        g.active_group = None
-            elif g.user_groups:
-                # If no active group is set, but user has groups, set the first one as active.
-                first_group = g.user_groups[0]
-                user_service.switch_active_group(current_user.id, str(first_group['_id']))
-                g.active_group = first_group
+                    user_service.switch_active_group(current_user.id, None)
+                    g.active_group = None
+        elif g.user_groups:
+            first_group = g.user_groups[0]
+            user_service.switch_active_group(current_user.id, str(first_group['_id']))
+            g.active_group = first_group
 
     @app.context_processor
     def inject_global_variables():
         return {
             'current_year': datetime.utcnow().year,
             'user_groups': g.get('user_groups', []),
-            'active_group': g.get('active_group')
+            'active_group': g.get('active_group'),
+            'is_admin_view_mode': g.get('is_admin_view_mode', False)
         }
 
     from .routes.event_routes import bp as event_bp

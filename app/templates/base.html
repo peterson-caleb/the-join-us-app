@@ -18,6 +18,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
     <style>
+        :root {
+            --admin-banner-height: 40px;
+        }
         body {
             min-height: 100vh;
             display: flex;
@@ -25,8 +28,6 @@
             padding-top: 56px;
         }
         main { flex: 1 0 auto; padding: 2rem 0; }
-        footer { padding: 1rem 0; background-color: #f8f9fa; border-top: 1px solid #dee2e6; }
-
         .navbar {
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
             position: fixed;
@@ -35,8 +36,26 @@
             left: 0;
             z-index: 1030;
         }
-        .navbar-brand { font-weight: bold; }
-
+        body.admin-view-mode {
+            padding-top: calc(56px + var(--admin-banner-height));
+        }
+        body.admin-view-mode .navbar {
+            top: var(--admin-banner-height);
+        }
+        .admin-view-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--admin-banner-height);
+            background-color: var(--warning-500);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1031;
+            font-weight: 500;
+        }
         .alert-container {
             position: fixed;
             top: 56px;
@@ -44,19 +63,30 @@
             width: 100%;
             z-index: 1051;
         }
-        .alert-container .alert {
-            border-radius: 0;
-            margin-bottom: 0;
-            border: 0;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
-            text-align: center;
-            font-weight: 500;
+        body.admin-view-mode .alert-container {
+            top: calc(56px + var(--admin-banner-height));
         }
     </style>
 
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{{ 'admin-view-mode' if is_admin_view_mode }}">
+    {% if is_admin_view_mode %}
+    <div class="admin-view-banner">
+        <div class="container d-flex justify-content-between align-items-center">
+            <span>
+                <i class="bi bi-eye-fill me-2"></i>
+                Viewing as admin: <strong>{{ active_group.name }}</strong>
+            </span>
+            <form action="{{ url_for('admin.exit_view_mode') }}" method="POST">
+                <button type="submit" class="btn btn-sm btn-light">
+                    <i class="bi bi-x-circle me-1"></i> Exit View Mode
+                </button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('home') }}">
@@ -80,6 +110,8 @@
                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.manage_users' %}active{% endif %}" href="{{ url_for('admin.manage_users') }}"><i class="bi bi-person-gear"></i> User Management</a></li>
                                     <li><a class="dropdown-item {% if request.endpoint == 'admin.system_panel' %}active{% endif %}" href="{{ url_for('admin.system_panel') }}"><i class="bi bi-server"></i> Group Panel</a></li>
                                     <li><a class="dropdown-item {% if request.endpoint == 'auth.manage_invitation_codes' %}active{% endif %}" href="{{ url_for('auth.manage_invitation_codes') }}"><i class="bi bi-key"></i> Invitation Codes</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item {% if request.endpoint == 'admin.platform_settings' %}active{% endif %}" href="{{ url_for('admin.platform_settings') }}"><i class="bi bi-sliders"></i> Platform Settings</a></li>
                                 </ul>
                             </li>
                         {% endif %}
@@ -93,7 +125,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% for group in user_groups %}
-                                <li><a class="dropdown-item {% if active_group and group._id == active_group._id %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
+                                <li><a class="dropdown-item {% if active_group and group._id == active_group._id and not is_admin_view_mode %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
                                 {% endfor %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('groups.manage') }}"><i class="bi bi-gear me-2"></i>Manage Groups</a></li>
@@ -109,16 +141,13 @@
                     </ul>
                 {% else %}
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('contacts.join_list') }}"><i class="bi bi-envelope-plus"></i> Join Contact List</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}"><i class="bi bi-box-arrow-in-right"></i> Login</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register User</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}"><i class="bi bi-person-plus"></i> Register</a></li>
                     </ul>
                 {% endif %}
             </div>
         </div>
     </nav>
-
-    {# REMOVED: Pending invitations banner #}
 
     <div class="alert-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -143,15 +172,9 @@
         </div>
     </main>
 
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <small class="text-muted">
-                        &copy; {{ current_year }} Join Us. All rights reserved.
-                    </small>
-                </div>
-            </div>
+    <footer class="footer mt-auto py-3 bg-light border-top">
+        <div class="container text-center">
+            <span class="text-muted">&copy; {{ current_year }} Join Us. All rights reserved.</span>
         </div>
     </footer>
 
@@ -162,7 +185,8 @@
     {% block extra_js %}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const successAlerts = document.querySelectorAll('.alert-success');
+        // Auto-hide success alerts
+        const successAlerts = document.querySelectorAll('.alert-success, .alert-info');
         successAlerts.forEach(function(alert) {
             setTimeout(function() {
                 new bootstrap.Alert(alert).close();

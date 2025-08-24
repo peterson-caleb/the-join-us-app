@@ -3,6 +3,7 @@ from bson import ObjectId
 import bcrypt
 from ..models.user import User
 from .group_service import GroupService
+import secrets
 
 class UserService:
     def __init__(self, db):
@@ -12,6 +13,7 @@ class UserService:
         self.group_service = GroupService(db)
         self.users_collection.create_index('email', unique=True)
         self.users_collection.create_index('username', unique=True)
+        self.users_collection.create_index('contact_collection_token', unique=True, sparse=True)
 
     def switch_active_group(self, user_id, group_id):
         """Updates the user's active group."""
@@ -81,7 +83,8 @@ class UserService:
             password_hash=password_hash,
             is_admin=is_admin,
             registration_method=registration_method,
-            active_group_id=group_id
+            active_group_id=group_id,
+            contact_collection_token=secrets.token_urlsafe(24) # Generate token on creation
         )
         
         self.users_collection.insert_one(user.to_dict())
@@ -106,6 +109,10 @@ class UserService:
 
     def get_user_by_email(self, email):
         user_data = self.users_collection.find_one({'email': email})
+        return User.from_dict(user_data) if user_data else None
+
+    def get_user_by_contact_token(self, token):
+        user_data = self.users_collection.find_one({'contact_collection_token': token})
         return User.from_dict(user_data) if user_data else None
 
     def verify_password(self, user, password):

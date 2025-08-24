@@ -6,12 +6,13 @@ from datetime import datetime, timedelta
 from flask import current_app
 
 class SMSService:
-    def __init__(self, sid, auth_token, twilio_phone, message_log_service, base_url, enabled=False):
+    def __init__(self, sid, auth_token, twilio_phone, message_log_service, base_url, settings_service, enabled=False):
         self.sid = sid
         self.auth_token = auth_token
         self.twilio_phone = twilio_phone
         self.base_url = base_url
         self.message_log_service = message_log_service
+        self.settings_service = settings_service
         self.enabled = enabled
         
         if self.sid and self.auth_token:
@@ -36,16 +37,12 @@ class SMSService:
             return False, reason
         return True, "Recipient OK"
 
-    # --- NEW METHOD: Checks the overall platform limits ---
     def _check_global_rate_limits(self):
-        """Checks if sending an SMS would violate the global platform limits."""
-        hourly_limit = current_app.config['SMS_HOURLY_LIMIT']
-        daily_limit = current_app.config['SMS_DAILY_LIMIT']
+        """Checks if sending an SMS would violate the global platform limits from DB settings."""
+        hourly_limit = self.settings_service.get_setting('sms_hourly_limit')
+        daily_limit = self.settings_service.get_setting('sms_daily_limit')
         
-        # NOTE: This reuses the old method which now needs to be group-aware. We need a global count method.
-        # Let's create a new global count method in the message log service.
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-        # We need a method that counts all messages, regardless of group
         hourly_count = self.message_log_service.get_sms_count_since(one_hour_ago)
         if hourly_count >= hourly_limit:
             return False, f"Global hourly SMS limit reached ({hourly_count}/{hourly_limit})."
@@ -87,21 +84,18 @@ class SMSService:
             self.message_log_service.log_message(to_number, message_body, 'blocked', error_message=reason, **log_kwargs)
             return True, None
 
-        # Check #1: Recipient Spam
         can_send, reason = self._check_recipient_spam(to_number)
         if not can_send:
             logging.error(f"SMS BLOCKED: {reason}")
             self.message_log_service.log_message(to_number, message_body, 'blocked', error_message=reason, **log_kwargs)
             return False, reason
 
-        # Check #2: Global Platform Limits
         can_send, reason = self._check_global_rate_limits()
         if not can_send:
             logging.error(f"SMS BLOCKED: {reason}")
             self.message_log_service.log_message(to_number, message_body, 'blocked', error_message=reason, **log_kwargs)
             return False, reason
             
-        # Check #3: Per-Group Limits
         can_send, reason = self._check_group_rate_limits(group_id)
         if not can_send:
             logging.error(f"SMS BLOCKED: {reason}")

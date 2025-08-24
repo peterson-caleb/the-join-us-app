@@ -6,73 +6,49 @@
         <div class="col-md-12">
             <h2>Manage Invitation Codes</h2>
             
-            <!-- Create new code form -->
             <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Create New Invitation Code</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Create New Invitation Code</h5></div>
                 <div class="card-body">
                     <form method="POST">
                         <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="expires_in_days" class="form-label">Expires In (Days)</label>
-                                    <input type="number" class="form-control" id="expires_in_days" 
-                                           name="expires_in_days" value="7" min="1" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="max_uses" class="form-label">Maximum Uses</label>
-                                    <input type="number" class="form-control" id="max_uses" 
-                                           name="max_uses" value="1" min="1" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button type="submit" class="btn btn-primary w-100">Generate Code</button>
-                                </div>
-                            </div>
+                            <div class="col-md-4 mb-3"><label for="expires_in_days" class="form-label">Expires In (Days)</label><input type="number" class="form-control" id="expires_in_days" name="expires_in_days" value="7" min="1" required></div>
+                            <div class="col-md-4 mb-3"><label for="max_uses" class="form-label">Maximum Uses</label><input type="number" class="form-control" id="max_uses" name="max_uses" value="1" min="1" required></div>
+                            <div class="col-md-4 mb-3"><label class="form-label">&nbsp;</label><button type="submit" class="btn btn-primary w-100">Generate Code</button></div>
                         </div>
                     </form>
                 </div>
             </div>
             
-            <!-- Active codes list -->
             <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Active Invitation Codes</h5>
-                </div>
+                <div class="card-header"><h5 class="mb-0">Active Registration Links</h5></div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
-                                    <th>Code</th>
-                                    <th>Created</th>
-                                    <th>Expires</th>
+                                    <th>Registration Link</th>
                                     <th>Uses</th>
-                                    <th>Max Uses</th>
-                                    <th>Status</th>
+                                    <th>Expires</th>
+                                    <th class="text-end">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for code in codes %}
+                                {% set registration_link = url_for('auth.register', code=code.code, _external=True) %}
                                 <tr>
-                                    <td>{{ code.code }}</td>
-                                    <td>{{ code.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>{{ code.expires_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                    <td>{{ code.uses }}</td>
-                                    <td>{{ code.max_uses }}</td>
                                     <td>
-                                        {% if code.is_active %}
-                                            <span class="badge bg-success">Active</span>
-                                        {% else %}
-                                            <span class="badge bg-secondary">Inactive</span>
-                                        {% endif %}
+                                        <input type="text" class="form-control form-control-sm" value="{{ registration_link }}" readonly id="link-{{ code.code }}">
+                                    </td>
+                                    <td>{{ code.uses }} / {{ code.max_uses }}</td>
+                                    <td>{{ code.expires_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-secondary copy-btn" data-clipboard-target="#link-{{ code.code }}">
+                                            <i class="bi bi-clipboard"></i> Copy
+                                        </button>
                                     </td>
                                 </tr>
+                                {% else %}
+                                <tr><td colspan="4" class="text-center">No active codes found.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -82,4 +58,33 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.11/dist/clipboard.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var clipboard = new ClipboardJS('.copy-btn');
+
+    clipboard.on('success', function(e) {
+        var originalText = e.trigger.innerHTML;
+        e.trigger.innerHTML = '<i class="bi bi-check-lg"></i> Copied!';
+        e.trigger.classList.remove('btn-outline-secondary');
+        e.trigger.classList.add('btn-success');
+        
+        setTimeout(function() {
+            e.trigger.innerHTML = originalText;
+            e.trigger.classList.remove('btn-success');
+            e.trigger.classList.add('btn-outline-secondary');
+        }, 2000);
+
+        e.clearSelection();
+    });
+
+    clipboard.on('error', function(e) {
+        // You can add error handling here if needed
+    });
+});
+</script>
 {% endblock %}

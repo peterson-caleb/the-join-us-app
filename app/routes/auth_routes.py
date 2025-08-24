@@ -28,28 +28,24 @@ def login():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
-        
+    
+    # Check for a code in the URL query parameters
+    code_from_url = request.args.get('code')
+    is_code_valid = registration_code_service.validate_code(code_from_url)
+
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        invitation_code = request.form['invitation_code']
-        
-        print(f"\nProcessing registration:")
-        print(f"Username: {username}")
-        print(f"Email: {email}")
-        print(f"Invitation code: {invitation_code}")
+        # Use the code from the hidden input if it exists, otherwise from the form
+        invitation_code = request.form.get('invitation_code_hidden') or request.form.get('invitation_code')
         
         try:
-            # Debug: Show code details before validation
-            registration_code_service.debug_show_code(invitation_code)
-            
-            # Validate invitation code
             if not registration_code_service.validate_code(invitation_code):
-                flash('Invalid or expired invitation code', 'error')
-                return render_template('auth/register.html')
+                flash('Invalid or expired invitation code.', 'error')
+                # Pass the invalid code back to the template if it came from URL
+                return render_template('auth/register.html', code_from_url=code_from_url, is_code_valid=False)
             
-            # Create user
             user = user_service.create_user(
                 username=username,
                 email=email,
@@ -57,23 +53,18 @@ def register():
                 registration_method='invite_code'
             )
             
-            # Mark invitation code as used
-            if not registration_code_service.use_code(invitation_code):
-                print(f"Warning: Could not mark invitation code {invitation_code} as used")
+            registration_code_service.use_code(invitation_code)
             
-            # Log the user in
             login_user(user)
             flash('Registration successful!', 'success')
             return redirect(url_for('home'))
             
         except ValueError as e:
-            print(f"ValueError during registration: {str(e)}")
             flash(str(e), 'error')
         except Exception as e:
-            print(f"Error during registration: {str(e)}")
-            flash('An error occurred during registration', 'error')
+            flash('An error occurred during registration.', 'error')
     
-    return render_template('auth/register.html')
+    return render_template('auth/register.html', code_from_url=code_from_url, is_code_valid=is_code_valid)
 
 @bp.route('/logout')
 @login_required
@@ -81,7 +72,6 @@ def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
-# Admin routes for managing invitation codes
 @bp.route('/admin/invitation-codes', methods=['GET', 'POST'])
 @login_required
 def manage_invitation_codes():
