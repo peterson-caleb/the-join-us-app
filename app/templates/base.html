@@ -39,6 +39,7 @@
 
         .alert-container {
             position: fixed;
+            top: 56px;
             left: 0;
             width: 100%;
             z-index: 1051;
@@ -69,7 +70,7 @@
                 {% if current_user.is_authenticated %}
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item"><a class="nav-link {% if request.endpoint == 'events.manage_events' %}active{% endif %}" href="{{ url_for('events.manage_events') }}"><i class="bi bi-calendar-event"></i> Events</a></li>
-                        <li class="nav-item"><a class="nav-link {% if request.endpoint == 'contacts.manage_master_list' %}active{% endif %}" href="{{ url_for('contacts.manage_master_list') }}"><i class="bi bi-people"></i> Contacts</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.endpoint == 'contacts.manage_contacts' %}active{% endif %}" href="{{ url_for('contacts.manage_contacts') }}"><i class="bi bi-people"></i> My Contacts</a></li>
                         {% if current_user.is_admin %}
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown"><i class="bi bi-gear"></i> Admin</a>
@@ -117,27 +118,9 @@
         </div>
     </nav>
 
-    {% if pending_invitations %}
-        <div class="alert-container" style="top: 56px; z-index: 1052;">
-        {% for invitation in pending_invitations %}
-            <div class="alert alert-info alert-dismissible fade show" role="alert">
-                <i class="bi bi-envelope me-2"></i>
-                You've been invited to join "<strong>{{ invitation.name }}</strong>".
-                <div class="d-inline-block ms-3">
-                    <form action="{{ url_for('groups.accept_invitation', group_id=invitation._id) }}" method="POST" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-success">Accept</button>
-                    </form>
-                    <form action="{{ url_for('groups.decline_invitation', group_id=invitation._id) }}" method="POST" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-danger">Decline</button>
-                    </form>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endfor %}
-        </div>
-    {% endif %}
+    {# REMOVED: Pending invitations banner #}
 
-    <div class="alert-container" style="top: {% if pending_invitations %}112px{% else %}56px{% endif %};">
+    <div class="alert-container">
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}

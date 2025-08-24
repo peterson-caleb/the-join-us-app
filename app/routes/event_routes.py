@@ -51,7 +51,6 @@ def manage_events():
     now = datetime.now(pytz.UTC)
     today = now.date()
     
-    # Step 1: Normalize all data first, especially converting date strings to datetime objects
     for event in events:
         event['_id'] = str(event['_id'])
         date_val = event.get('date')
@@ -59,15 +58,13 @@ def manage_events():
             try:
                 event['date'] = datetime.strptime(date_val, '%Y-%m-%d')
             except (ValueError, TypeError):
-                event['date'] = None # Gracefully handle invalid date strings
+                event['date'] = None
 
-    # Step 2: Now that all dates are uniform, filter if necessary
     if not show_past:
         events = [
             e for e in events if e.get('date') and e.get('date').date() >= today
         ]
 
-    # Pass the global default to the template for the 'create' modal
     default_expiry_hours = current_app.config.get('INVITATION_EXPIRY_HOURS', 24)
 
     return render_template('events/list.html', events=events, now=now, show_past=show_past, default_expiry_hours=default_expiry_hours)
@@ -127,13 +124,15 @@ def manual_rsvp(event_id, invitee_id):
 @require_active_group
 def manage_invitees(event_id):
     group_id = current_user.active_group_id
+    owner_id = current_user.id
     event = event_service.get_event(group_id, event_id)
     if not event:
         flash('Event not found', 'error')
         return redirect(url_for('events.manage_events'))
     
-    contacts = contact_service.get_contacts(group_id)
-    all_tags = contact_service.get_all_tags(group_id)
+    # Contacts are now fetched for the user, not the group
+    contacts = contact_service.get_contacts(owner_id)
+    all_tags = contact_service.get_all_tags(owner_id)
     current_invitee_ids = list({invitee.get('contact_id') for invitee in event.invitees})
     
     return render_template(
@@ -148,12 +147,15 @@ def manage_invitees(event_id):
 @require_active_group
 def add_invitees(event_id):
     group_id = current_user.active_group_id
+    owner_id = current_user.id
     selected_contact_ids = request.form.getlist('invitees_to_add')
     if not selected_contact_ids:
         flash('No invitees selected.', 'warning')
         return redirect(url_for('events.manage_invitees', event_id=event_id))
+
     try:
-        invitees_to_add = [contact_service.get_contact(group_id, cid) for cid in selected_contact_ids]
+        # Contacts are fetched from the user's list
+        invitees_to_add = [contact_service.get_contact(owner_id, cid) for cid in selected_contact_ids]
         added_count = event_service.add_invitees(group_id, event_id, invitees_to_add)
         
         if added_count > 0:
@@ -164,6 +166,7 @@ def add_invitees(event_id):
         flash(f'Error adding invitees: {str(e)}', 'error')
     
     return redirect(url_for('events.manage_invitees', event_id=event_id))
+
 
 @bp.route('/events/<event_id>/toggle_automation', methods=['POST'])
 @require_active_group

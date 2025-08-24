@@ -16,14 +16,13 @@ def manage():
             try:
                 success = user_service.create_group_for_user(current_user.id, group_name)
                 if success:
-                    # Refresh the user object after creating a group
+                    # Refresh the user object to get the new active group
                     refreshed_user = user_service.get_user(current_user.id)
                     if refreshed_user:
                         login_user(refreshed_user, fresh=False)
                     flash(f"Group '{group_name}' created and is now your active group.", 'success')
                 else:
                     flash('Could not create group.', 'error')
-
             except Exception as e:
                 flash(f'Error creating group: {e}', 'error')
         return redirect(url_for('groups.manage'))
@@ -36,7 +35,6 @@ def switch(group_id):
     try:
         success = user_service.switch_active_group(current_user.id, group_id)
         if success:
-            # Refresh the user object in the session after switching groups
             refreshed_user = user_service.get_user(current_user.id)
             if refreshed_user:
                 login_user(refreshed_user, fresh=False)
@@ -48,45 +46,7 @@ def switch(group_id):
     except Exception as e:
         flash(f'An error occurred: {e}', 'error')
 
-    return redirect(url_for('home'))
+    # Redirect to the dashboard or home after switching
+    return redirect(request.referrer or url_for('home'))
 
-@bp.route('/<group_id>/invite', methods=['POST'])
-@login_required
-def invite_member(group_id):
-    email_to_invite = request.form.get('email')
-    try:
-        user_service.invite_user_to_group(current_user, email_to_invite, group_id)
-        flash(f"Invitation sent to {email_to_invite}.", "success")
-    except (ValueError, PermissionError) as e:
-        flash(str(e), "error")
-    except Exception:
-        flash("An unexpected error occurred.", "error")
-    return redirect(url_for('groups.manage'))
-
-@bp.route('/invitations/<group_id>/accept', methods=['POST'])
-@login_required
-def accept_invitation(group_id):
-    try:
-        user_service.accept_group_invitation(current_user.id, group_id)
-        # Refresh the user object after accepting an invitation
-        refreshed_user = user_service.get_user(current_user.id)
-        if refreshed_user:
-            login_user(refreshed_user, fresh=False)
-        flash("You have joined the group!", "success")
-    except ValueError as e:
-        flash(str(e), "error")
-    return redirect(url_for('groups.manage'))
-
-@bp.route('/invitations/<group_id>/decline', methods=['POST'])
-@login_required
-def decline_invitation(group_id):
-    try:
-        user_service.decline_group_invitation(current_user.id, group_id)
-        # Refresh the user object after declining an invitation
-        refreshed_user = user_service.get_user(current_user.id)
-        if refreshed_user:
-            login_user(refreshed_user, fresh=False)
-        flash("Invitation declined.", "info")
-    except ValueError as e:
-        flash(str(e), "error")
-    return redirect(url_for('home'))
+# REMOVED: All routes related to inviting, accepting, or declining group invitations.

@@ -8,7 +8,7 @@ class AdminDashboardService:
         self.users_collection = db['users']
         self.groups_collection = db['groups']
         self.events_collection = db['events']
-        self.contacts_collection = db['master_list']
+        self.contacts_collection = db['contacts'] # RENAMED
         self.logs_collection = db['message_logs']
 
     def get_global_stats(self):
@@ -28,16 +28,23 @@ class AdminDashboardService:
         }
         
     def get_all_users_with_details(self):
-        """Fetches all users and enriches them with group count and ownership details."""
+        """Fetches all users and enriches them with their owned group count."""
         pipeline = [
+            {
+                '$lookup': {
+                    'from': 'groups',
+                    'localField': '_id',
+                    'foreignField': 'owner_id',
+                    'as': 'owned_groups'
+                }
+            },
             {
                 '$project': {
                     'username': 1,
                     'email': 1,
                     'is_admin': 1,
                     'created_at': 1,
-                    # --- FIX: Use $ifNull to handle users without a group_memberships field ---
-                    'group_membership_count': {'$size': {'$ifNull': ['$group_memberships', []]}}
+                    'group_ownership_count': {'$size': '$owned_groups'}
                 }
             },
             {

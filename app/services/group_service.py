@@ -6,7 +6,6 @@ class GroupService:
     def __init__(self, db):
         self.db = db
         self.groups_collection = db['groups']
-        # --- REMOVED: self.users_collection is no longer needed here ---
 
     def create_group(self, name, owner_id):
         """Creates a new group and returns its ID."""
@@ -19,12 +18,6 @@ class GroupService:
         group_data = self.groups_collection.find_one({"_id": ObjectId(group_id)})
         return Group.from_dict(group_data) if group_data else None
 
-    # --- MOVED: The get_all_groups_with_owners method has been moved to UserService ---
-        
-    def get_pending_invitations_for_user(self, user):
-        """Fetches full group details for a user's pending invitations."""
-        if not user or not user.group_invitations:
-            return []
-        
-        group_ids = user.group_invitations
-        return list(self.groups_collection.find({'_id': {'$in': group_ids}}))
+    def get_groups_by_owner(self, owner_id):
+        """Retrieves all groups owned by a specific user."""
+        return list(self.groups_collection.find({'owner_id': ObjectId(owner_id)}))

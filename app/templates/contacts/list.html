@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Contacts{% endblock %}
+{% block title %}My Contacts{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -73,7 +73,7 @@
     <div class="row">
         <div class="col-md-12 mb-4">
             <div class="d-flex justify-content-between align-items-center">
-                <h1>Contacts</h1>
+                <h1>My Contacts</h1>
                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContactModal">
                     Add Contact
                 </button>
@@ -86,7 +86,7 @@
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Filter by Tags</h5>
-                    <form action="{{ url_for('contacts.manage_master_list') }}" method="GET" class="row g-3">
+                    <form action="{{ url_for('contacts.manage_contacts') }}" method="GET" class="row g-3">
                         <div class="col-md-10">
                             <select class="form-control tag-select" name="tags" multiple>
                                 {% for tag in all_tags %}
@@ -118,7 +118,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for contact in master_list %}
+                                {% for contact in contacts %}
                                 <tr>
                                     <td data-label="Name">{{ contact.name }}</td>
                                     <td data-label="Phone">{{ contact.phone }}</td>
@@ -166,7 +166,7 @@
 <div class="modal fade" id="createContactModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form action="{{ url_for('contacts.manage_master_list') }}" method="POST">
+            <form action="{{ url_for('contacts.manage_contacts') }}" method="POST">
                 <div class="modal-header"><h5 class="modal-title">Add New Contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" required></div>
@@ -186,7 +186,7 @@
         </div>
     </div>
 </div>
-{% for contact in master_list %}
+{% for contact in contacts %}
 <div class="modal fade" id="editContactModal-{{ contact._id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">

@@ -20,20 +20,7 @@ def admin_required(f):
 @admin_required
 def system_panel():
     all_groups = user_service.get_all_groups_with_owners()
-    current_user_group_ids = [gm['group_id'] for gm in current_user.group_memberships]
-    return render_template('admin/system_panel.html',
-                           all_groups=all_groups,
-                           current_user_group_ids=current_user_group_ids)
-
-@bp.route('/groups/join/<group_id>', methods=['POST'])
-@admin_required
-def admin_join_group(group_id):
-    try:
-        user_service.add_admin_to_group(current_user.id, group_id)
-        flash("You have successfully joined the group.", "success")
-    except Exception as e:
-        flash(str(e), "error")
-    return redirect(url_for('admin.system_panel'))
+    return render_template('admin/system_panel.html', all_groups=all_groups)
 
 @bp.route('/global-dashboard')
 @admin_required

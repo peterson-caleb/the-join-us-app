@@ -216,7 +216,7 @@
                     </div>
                     <h3 class="dashboard-card-title">Manage Events</h3>
                     <p class="dashboard-card-text">Create events with capacity management, automated invitation queuing, and real-time RSVP tracking.</p>
-                    <a href="/events" class="dashboard-btn primary">
+                    <a href="{{ url_for('events.manage_events') }}" class="dashboard-btn primary">
                         <i class="bi bi-arrow-right"></i>
                         Go to Events
                     </a>
@@ -229,9 +229,9 @@
                     <div class="card-icon contacts">
                         <i class="bi bi-people"></i>
                     </div>
-                    <h3 class="dashboard-card-title">Master Contact List</h3>
+                    <h3 class="dashboard-card-title">My Contacts</h3>
                     <p class="dashboard-card-text">Organize your contacts with tags, track message history, and manage your invitation lists efficiently.</p>
-                    <a href="/master-list" class="dashboard-btn secondary">
+                    <a href="{{ url_for('contacts.manage_contacts') }}" class="dashboard-btn secondary">
                         <i class="bi bi-arrow-right"></i>
                         Go to Contacts
                     </a>

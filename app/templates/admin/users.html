@@ -23,7 +23,7 @@
                             <th>Username</th>
                             <th>Email</th>
                             <th>Role</th>
-                            <th>Groups</th>
+                            <th>Groups Owned</th>
                             <th>Registered On</th>
                         </tr>
                     </thead>
@@ -39,7 +39,7 @@
                                     <span class="badge bg-secondary">User</span>
                                 {% endif %}
                             </td>
-                            <td>{{ user.group_membership_count }}</td>
+                            <td>{{ user.group_ownership_count }}</td>
                             <td>{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'N/A' }}</td>
                         </tr>
                         {% else %}

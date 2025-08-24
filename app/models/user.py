@@ -4,23 +4,23 @@ from bson import ObjectId
 from datetime import datetime
 
 class User(UserMixin):
-    def __init__(self, username, email, password_hash, is_admin=False, registration_method=None, _id=None, active_group_id=None, group_memberships=None, group_invitations=None):
+    def __init__(self, username, email, password_hash, is_admin=False, registration_method=None, _id=None, active_group_id=None, created_at=None):
         self.username = username
         self.email = email
         self.password_hash = password_hash
         self.is_admin = is_admin
         self.registration_method = registration_method
-        self.created_at = datetime.utcnow()
-        self._id = _id if _id else ObjectId()
+        self.created_at = created_at or datetime.utcnow()
+        self._id = _id or ObjectId()
         self.active_group_id = active_group_id
-        self.group_memberships = group_memberships or []
-        self.group_invitations = group_invitations or []
+        
+        # REMOVED: group_memberships and group_invitations are no longer needed.
+        # Group ownership is now stored on the group document itself.
 
     @property
     def id(self):
         return str(self._id)
 
-    # --- NEW: Add a property to safely get the active group ID as a string ---
     @property
     def active_group_id_str(self):
         """Returns the active group ID as a string, or None if not set."""
@@ -36,8 +36,7 @@ class User(UserMixin):
             registration_method=data.get('registration_method'),
             _id=data.get('_id'),
             active_group_id=data.get('active_group_id'),
-            group_memberships=data.get('group_memberships', []),
-            group_invitations=data.get('group_invitations', [])
+            created_at=data.get('created_at')
         )
 
     def to_dict(self):
@@ -49,7 +48,5 @@ class User(UserMixin):
             "is_admin": self.is_admin,
             "registration_method": self.registration_method,
             "created_at": self.created_at,
-            "active_group_id": self.active_group_id,
-            "group_memberships": self.group_memberships,
-            "group_invitations": self.group_invitations
+            "active_group_id": self.active_group_id
         }

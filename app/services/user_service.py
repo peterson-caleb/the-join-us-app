@@ -14,28 +14,21 @@ class UserService:
         self.users_collection.create_index('username', unique=True)
 
     def switch_active_group(self, user_id, group_id):
-        """Updates the user's active group. Handles None for group_id."""
-        user = self.get_user(user_id)
-        
-        # If group_id is provided, verify the user is a member.
-        if group_id:
-            is_member = any(str(gm['group_id']) == str(group_id) for gm in user.group_memberships)
-            if not is_member:
-                raise PermissionError("User is not a member of this group.")
-        
-        # Prepare the new ID for the database (could be ObjectId or None)
-        new_active_id = ObjectId(group_id) if group_id else None
+        """Updates the user's active group."""
+        user_oid = ObjectId(user_id)
+        group_oid = ObjectId(group_id) if group_id else None
 
-        # Always update the database, even if values appear the same
-        # This ensures consistency between string and ObjectId comparisons
+        # If a group_id is provided, verify the user owns this group.
+        if group_oid:
+            group = self.groups_collection.find_one({"_id": group_oid})
+            if not group or group.get('owner_id') != user_oid:
+                raise PermissionError("User does not own this group.")
+
         result = self.users_collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {'$set': {'active_group_id': new_active_id}}
+            {'_id': user_oid},
+            {'$set': {'active_group_id': group_oid}}
         )
-        
-        # Update the user object to return the refreshed state
-        user.active_group_id = new_active_id
-        return result.modified_count > 0 or True  # Return True even if no modification (already set)
+        return result.modified_count > 0 or True
 
     def get_all_groups_with_owners(self):
         """Fetches all groups and enriches them with owner's username."""
@@ -78,7 +71,7 @@ class UserService:
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         temp_user_id = ObjectId()
-        default_group_name = f"{username}'s Group"
+        default_group_name = f"{username}'s Personal Group"
         group_id = self.group_service.create_group(name=default_group_name, owner_id=temp_user_id)
         
         user = User(
@@ -88,89 +81,24 @@ class UserService:
             password_hash=password_hash,
             is_admin=is_admin,
             registration_method=registration_method,
-            active_group_id=group_id,
-            group_memberships=[{'group_id': group_id, 'role': 'owner'}]
+            active_group_id=group_id
         )
         
         self.users_collection.insert_one(user.to_dict())
         return user
     
     def create_group_for_user(self, user_id, group_name):
-        group_id = self.group_service.create_group(name=group_name, owner_id=ObjectId(user_id))
+        user_oid = ObjectId(user_id)
+        group_id = self.group_service.create_group(name=group_name, owner_id=user_oid)
         if not group_id:
             raise Exception("Failed to create the group document.")
 
-        new_membership = {'group_id': group_id, 'role': 'owner'}
+        # Set the newly created group as active
         result = self.users_collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {
-                '$push': {'group_memberships': new_membership},
-                '$set': {'active_group_id': group_id}
-            }
+            {'_id': user_oid},
+            {'$set': {'active_group_id': group_id}}
         )
         return result.modified_count > 0
-
-    def add_admin_to_group(self, admin_user_id, group_id_to_join):
-        admin_user = self.get_user(admin_user_id)
-        if not admin_user or not admin_user.is_admin:
-            raise PermissionError("Only administrators can perform this action.")
-        
-        is_member = any(str(gm['group_id']) == str(group_id_to_join) for gm in admin_user.group_memberships)
-        if is_member:
-            return True
-
-        new_membership = {'group_id': ObjectId(group_id_to_join), 'role': 'member'}
-        result = self.users_collection.update_one(
-            {'_id': admin_user._id},
-            {'$push': {'group_memberships': new_membership}}
-        )
-        return result.modified_count > 0
-
-    def invite_user_to_group(self, inviter_user, invited_email, group_id):
-        is_owner = any(str(gm['group_id']) == str(group_id) and gm['role'] == 'owner' for gm in inviter_user.group_memberships)
-        
-        if not is_owner and not inviter_user.is_admin:
-            raise PermissionError("Only group owners or administrators can invite new members.")
-
-        invited_user = self.get_user_by_email(invited_email)
-        if not invited_user:
-            raise ValueError(f"No user found with the email: {invited_email}")
-
-        is_member = any(str(gm['group_id']) == str(group_id) for gm in invited_user.group_memberships)
-        if is_member:
-            raise ValueError("This user is already a member of the group.")
-        
-        if ObjectId(group_id) in invited_user.group_invitations:
-            raise ValueError("This user has already been invited to the group.")
-
-        self.users_collection.update_one(
-            {'_id': invited_user._id},
-            {'$push': {'group_invitations': ObjectId(group_id)}}
-        )
-        return True
-
-    def accept_group_invitation(self, user_id, group_id):
-        user = self.get_user(user_id)
-        if ObjectId(group_id) not in user.group_invitations:
-            raise ValueError("No pending invitation found for this group.")
-        
-        new_membership = {'group_id': ObjectId(group_id), 'role': 'member'}
-        self.users_collection.update_one(
-            {'_id': user._id},
-            {
-                '$pull': {'group_invitations': ObjectId(group_id)},
-                '$push': {'group_memberships': new_membership},
-                '$set': {'active_group_id': ObjectId(group_id)}
-            }
-        )
-        return True
-
-    def decline_group_invitation(self, user_id, group_id):
-        self.users_collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {'$pull': {'group_invitations': ObjectId(group_id)}}
-        )
-        return True
 
     def get_user(self, user_id):
         user_data = self.users_collection.find_one({'_id': ObjectId(user_id)})
@@ -179,13 +107,6 @@ class UserService:
     def get_user_by_email(self, email):
         user_data = self.users_collection.find_one({'email': email})
         return User.from_dict(user_data) if user_data else None
-
-    def get_user_groups_with_details(self, user):
-        if not user or not user.group_memberships:
-            return []
-        group_ids = [gm['group_id'] for gm in user.group_memberships]
-        groups_cursor = self.groups_collection.find({'_id': {'$in': group_ids}})
-        return list(groups_cursor)
 
     def verify_password(self, user, password):
         return bcrypt.checkpw(password.encode('utf-8'), user.password_hash)

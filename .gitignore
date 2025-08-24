@@ -61,3 +61,6 @@ coverage.xml
 
 # Exported code files
 exports/
+
+# Backup Files from Database
+backups/

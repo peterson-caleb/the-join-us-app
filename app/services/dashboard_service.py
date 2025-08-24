@@ -71,7 +71,7 @@ class DashboardService:
                 'group_id': ObjectId(group_id)
             }},
             {'$sort': {'timestamp': -1}},
-            {'$lookup': {'from': 'master_list', 'localField': 'contact_id', 'foreignField': '_id', 'as': 'contact_info'}},
+            {'$lookup': {'from': 'contacts', 'localField': 'contact_id', 'foreignField': '_id', 'as': 'contact_info'}}, # RENAMED
             {'$unwind': {'path': '$contact_info', 'preserveNullAndEmptyArrays': True}},
             {'$lookup': {'from': 'events', 'localField': 'event_id', 'foreignField': '_id', 'as': 'event_info'}},
             {'$unwind': {'path': '$event_info', 'preserveNullAndEmptyArrays': True}},

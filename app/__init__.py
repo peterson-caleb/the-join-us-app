@@ -81,34 +81,39 @@ def create_app(config_class=Config):
     def load_user_context():
         # Initialize context variables
         g.user_groups = []
-        g.pending_invitations = []
         g.active_group = None
 
         if current_user.is_authenticated:
-            g.user_groups = user_service.get_user_groups_with_details(current_user)
-            g.pending_invitations = group_service.get_pending_invitations_for_user(current_user)
+            # A user's groups are the ones they own.
+            g.user_groups = group_service.get_groups_by_owner(current_user.id)
 
             if current_user.active_group_id:
                 active_group_doc = group_service.get_group(current_user.active_group_id)
                 
-                if active_group_doc and any(group['_id'] == active_group_doc._id for group in g.user_groups):
+                # Ensure the active group is actually owned by the current user
+                if active_group_doc and any(str(group['_id']) == str(active_group_doc._id) for group in g.user_groups):
                     g.active_group = active_group_doc
                 else:
+                    # If active group is invalid or not owned, set a new one or clear it
                     new_active_group = g.user_groups[0] if g.user_groups else None
                     if new_active_group:
                         user_service.switch_active_group(current_user.id, str(new_active_group['_id']))
                         g.active_group = new_active_group
                     else:
+                        # User owns no groups, so clear active_group_id
                         user_service.switch_active_group(current_user.id, None)
                         g.active_group = None
-
+            elif g.user_groups:
+                # If no active group is set, but user has groups, set the first one as active.
+                first_group = g.user_groups[0]
+                user_service.switch_active_group(current_user.id, str(first_group['_id']))
+                g.active_group = first_group
 
     @app.context_processor
     def inject_global_variables():
         return {
             'current_year': datetime.utcnow().year,
             'user_groups': g.get('user_groups', []),
-            'pending_invitations': g.get('pending_invitations', []),
             'active_group': g.get('active_group')
         }
 

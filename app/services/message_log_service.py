@@ -59,9 +59,8 @@ class MessageLogService:
         })
         return count
 
-    def get_logs_for_contact(self, group_id, contact_id):
-        """Retrieve all message logs for a specific contact within a group."""
+    def get_logs_for_contact(self, contact_id):
+        """Retrieve all message logs for a specific contact, regardless of group."""
         return list(self.logs_collection.find({
-            'contact_id': ObjectId(contact_id),
-            'group_id': ObjectId(group_id)
+            'contact_id': ObjectId(contact_id)
         }).sort('timestamp', -1))
