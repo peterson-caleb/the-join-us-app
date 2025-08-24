@@ -112,19 +112,25 @@ This section focuses on adding more context and useful information for both even
 
 -   Implementation: The new component will be a pill-shaped, stacked bar with smooth, animated gradient fills. An interactive popover will be triggered on hover, displaying a detailed breakdown of confirmed, invited, and remaining spots.
 
+#### 13\. Add Browser Favicon
+
+-   Goal: Improve the professional appearance and brand recognition of the application by adding a custom favicon that displays in browser tabs and bookmarks.
+
+-   Implementation: Design and create a favicon in multiple sizes (16x16, 32x32, and 180x180 for mobile). Update the HTML templates to include the appropriate favicon link tags in the head section. The favicon files will be served from the static assets directory.
+
 * * * * *
 
 ### ## Part 3: Data & Engagement Analytics
 
 This section introduces new reporting features to give users powerful insights into their contact list's engagement over time and the performance of their events.
 
-#### 13\. Add "Non-Response" Metric to Group Dashboard
+#### 14\. Add "Non-Response" Metric to Group Dashboard
 
 -   Goal: Provide organizers with clear insight into how many invited guests did not respond to an invitation.
 
 -   Implementation: A new stat card for "No Response / Expired" will be added to the group dashboard. The DashboardService will be updated with a new query to count invitees with an EXPIRED status. This new card will also be clickable, leading to a detailed modal view listing the specific contacts who did not respond.
 
-#### 14\. Implement Individual Contact Statistics
+#### 15\. Implement Individual Contact Statistics
 
 -   Goal: Provide contact owners with a detailed history of a single contact's engagement.
 
@@ -132,7 +138,7 @@ This section introduces new reporting features to give users powerful insights i
 
 -   Backend: A new, secure API endpoint will be created to fetch stats for a single contact on demand using an efficient database aggregation query.
 
-#### 15\. Create a Contact Engagement Report Page
+#### 16\. Create a Contact Engagement Report Page
 
 -   Goal: Offer a comparative, high-level overview of engagement across all of a user's contacts.
 
