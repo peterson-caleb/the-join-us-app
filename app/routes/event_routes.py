@@ -1,6 +1,6 @@
 # app/routes/event_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, g, Response
-from .. import event_service, contact_service, sms_service, user_service
+from .. import event_service, contact_service, sms_service, user_service, group_service
 from datetime import datetime, timedelta
 from bson import ObjectId
 from flask_login import login_required, current_user
@@ -281,9 +281,15 @@ def rsvp_page(token):
 
     confirmed_guests = []
     if event.show_attendee_list:
-        confirmed_guests = [i['name'] for i in event.invitees if i.get('status') == 'YES']
+        # BUGFIX: Create a list of dictionaries to handle host status
+        confirmed_guests = [{'name': i['name'], 'is_host': False} for i in event.invitees if i.get('status') == 'YES']
+        if event.organizer_is_attending:
+            group = group_service.get_group(event.group_id)
+            if group:
+                owner = user_service.get_user(group.owner_id)
+                if owner:
+                    confirmed_guests.insert(0, {'name': owner.username, 'is_host': True})
     
-    # BUGFIX: Calculate capacity details for initial page load
     capacity_details = None
     if invitee.get('status') == 'YES':
         confirmed_count = sum(1 for i in event.invitees if i.get('status') == 'YES')
@@ -300,7 +306,7 @@ def rsvp_page(token):
         token=token, 
         expiry_datetime_est=expiry_datetime_est,
         confirmed_guests=confirmed_guests,
-        capacity_details=capacity_details # Pass details to template
+        capacity_details=capacity_details
     )
 
 @bp.route('/api/rsvp/<token>', methods=['POST'])
@@ -320,7 +326,15 @@ def submit_rsvp_api(token):
             'organizer_attending': event.organizer_is_attending
         }
         if event.show_attendee_list:
-            json_response['confirmed_guests'] = [i['name'] for i in event.invitees if i.get('status') == 'YES']
+            # BUGFIX: Also return the host in the dynamic list
+            confirmed_guests = [{'name': i['name'], 'is_host': False} for i in event.invitees if i.get('status') == 'YES']
+            if event.organizer_is_attending:
+                group = group_service.get_group(event.group_id)
+                if group:
+                    owner = user_service.get_user(group.owner_id)
+                    if owner:
+                        confirmed_guests.insert(0, {'name': owner.username, 'is_host': True})
+            json_response['confirmed_guests'] = confirmed_guests
 
     return jsonify(json_response)
 

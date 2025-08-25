@@ -8,8 +8,8 @@
     .status-banner { padding: 1rem; border-radius: 0.5rem; font-weight: 500; }
     .status-yes { background-color: var(--success-50); color: var(--success-800); border: 1px solid var(--success-200); }
     .status-no { background-color: var(--danger-50); color: var(--danger-800); border: 1px solid var(--danger-200); }
-    .btn-yes.active, .btn-yes:hover { background-color: var(--success-600) !important; border-color: var(--success-600) !important; }
-    .btn-no.active, .btn-no:hover { background-color: var(--danger-600) !important; border-color: var(--danger-600) !important; }
+    .btn-yes:hover { background-color: var(--success-600) !important; border-color: var(--success-600) !important; }
+    .btn-no:hover { background-color: var(--danger-600) !important; border-color: var(--danger-600) !important; }
     .toast-container { z-index: 1090; }
 </style>
 {% endblock %}
@@ -74,16 +74,15 @@
                     </div>
                     {% endif %}
                     <div id="rsvp-buttons" class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
-                        <button class="btn btn-success btn-lg px-4 gap-3 btn-yes {% if invitee.status == 'YES' %}active{% endif %}" data-response="YES">
+                        <button class="btn btn-success btn-lg px-4 gap-3 btn-yes {% if invitee.status == 'YES' %}d-none{% endif %}" data-response="YES">
                             <i class="bi bi-check-circle"></i> Yes, I'll be there!
                         </button>
-                        <button class="btn btn-danger btn-lg px-4 btn-no {% if invitee.status == 'NO' %}active{% endif %}" data-response="NO">
+                        <button class="btn btn-danger btn-lg px-4 btn-no {% if invitee.status == 'NO' %}d-none{% endif %}" data-response="NO">
                             <i class="bi bi-x-circle"></i> No, I can't make it
                         </button>
                     </div>
                     
                     <div id="post-rsvp-info" class="mt-4">
-                        {# BUGFIX: Render capacity bar on initial load if user is already confirmed #}
                         {% if capacity_details %}
                             {% set total_confirmed = capacity_details.confirmed + (1 if capacity_details.organizer_attending else 0) %}
                             {% set capacity = capacity_details.capacity %}
@@ -121,8 +120,14 @@
                         <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Confirmed Attendees</h5>
                     </div>
                     <ul class="list-group list-group-flush">
-                        {% for guest_name in confirmed_guests %}
-                            <li class="list-group-item">{{ guest_name }}</li>
+                        {# BUGFIX: Update loop to handle new guest object structure #}
+                        {% for guest in confirmed_guests %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                {{ guest.name }}
+                                {% if guest.is_host %}
+                                    <span class="badge bg-primary rounded-pill">Host</span>
+                                {% endif %}
+                            </li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -147,7 +152,8 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const rsvpButtons = document.querySelectorAll('#rsvp-buttons button');
+    const btnYes = document.querySelector('.btn-yes');
+    const btnNo = document.querySelector('.btn-no');
     const token = "{{ token }}";
     const eventId = "{{ event._id }}";
     const statusContainer = document.getElementById('status-container');
@@ -156,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const toastElement = document.getElementById('rsvpToast');
     const toast = new bootstrap.Toast(toastElement);
 
-    rsvpButtons.forEach(button => {
+    document.querySelectorAll('#rsvp-buttons button').forEach(button => {
         button.addEventListener('click', function () {
             const response = this.dataset.response;
             submitRsvp(response);
@@ -183,12 +189,12 @@ document.addEventListener('DOMContentLoaded', function () {
         let bannerHtml = '';
         if (response === 'YES') {
             bannerHtml = `<div class="status-banner status-yes"><i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.</div>`;
-            document.querySelector('.btn-yes').classList.add('active');
-            document.querySelector('.btn-no').classList.remove('active');
+            btnYes.classList.add('d-none');
+            btnNo.classList.remove('d-none');
         } else if (response === 'NO') {
             bannerHtml = `<div class="status-banner status-no"><i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.</div>`;
-            document.querySelector('.btn-no').classList.add('active');
-            document.querySelector('.btn-yes').classList.remove('active');
+            btnNo.classList.add('d-none');
+            btnYes.classList.remove('d-none');
             postRsvpContainer.innerHTML = ''; 
             attendeeListContainer.innerHTML = '';
         }
@@ -230,8 +236,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         let listItems = '';
+        // BUGFIX: Update loop to handle new guest object structure
         guests.forEach(guest => {
-            listItems += `<li class="list-group-item">${guest}</li>`;
+            const hostBadge = guest.is_host ? '<span class="badge bg-primary rounded-pill">Host</span>' : '';
+            listItems += `<li class="list-group-item d-flex justify-content-between align-items-center">${guest.name} ${hostBadge}</li>`;
         });
 
         const listHtml = `
@@ -247,7 +255,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setLoadingState(isLoading) {
-        rsvpButtons.forEach(button => {
+        document.querySelectorAll('#rsvp-buttons button').forEach(button => {
             if (isLoading) {
                 button.disabled = true;
                 button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>  Saving...`;
