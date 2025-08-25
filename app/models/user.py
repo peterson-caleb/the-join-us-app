@@ -5,10 +5,11 @@ from datetime import datetime
 import secrets
 
 class User(UserMixin):
-    def __init__(self, username, email, password_hash, is_admin=False, registration_method=None, _id=None, active_group_id=None, created_at=None, contact_collection_token=None):
+    def __init__(self, username, email, password_hash, name, is_admin=False, registration_method=None, _id=None, active_group_id=None, created_at=None, contact_collection_token=None):
         self.username = username
         self.email = email
         self.password_hash = password_hash
+        self.name = name # NEW FIELD
         self.is_admin = is_admin
         self.registration_method = registration_method
         self.created_at = created_at or datetime.utcnow()
@@ -31,6 +32,7 @@ class User(UserMixin):
             username=data['username'],
             email=data['email'],
             password_hash=data['password_hash'],
+            name=data.get('name', data['username']), # Fallback to username for old users
             is_admin=data.get('is_admin', False),
             registration_method=data.get('registration_method'),
             _id=data.get('_id'),
@@ -45,6 +47,7 @@ class User(UserMixin):
             "username": self.username,
             "email": self.email,
             "password_hash": self.password_hash,
+            "name": self.name,
             "is_admin": self.is_admin,
             "registration_method": self.registration_method,
             "created_at": self.created_at,

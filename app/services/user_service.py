@@ -20,7 +20,6 @@ class UserService:
         user_oid = ObjectId(user_id)
         group_oid = ObjectId(group_id) if group_id else None
 
-        # If a group_id is provided, verify the user owns this group.
         if group_oid:
             group = self.groups_collection.find_one({"_id": group_oid})
             if not group or group.get('owner_id') != user_oid:
@@ -66,14 +65,14 @@ class UserService:
     def is_first_run(self):
         return self.users_collection.count_documents({}) == 0
 
-    def create_user(self, username, email, password, is_admin=False, registration_method=None):
+    def create_user(self, username, email, password, name, is_admin=False, registration_method=None):
         if self.users_collection.find_one({'$or': [{'email': email}, {'username': username}]}):
             raise ValueError('Username or email already exists')
         
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         
         temp_user_id = ObjectId()
-        default_group_name = f"{username}'s Personal Group"
+        default_group_name = f"{name}'s Personal Group"
         group_id = self.group_service.create_group(name=default_group_name, owner_id=temp_user_id)
         
         user = User(
@@ -81,10 +80,11 @@ class UserService:
             username=username, 
             email=email, 
             password_hash=password_hash,
+            name=name,
             is_admin=is_admin,
             registration_method=registration_method,
             active_group_id=group_id,
-            contact_collection_token=secrets.token_urlsafe(24) # Generate token on creation
+            contact_collection_token=secrets.token_urlsafe(24)
         )
         
         self.users_collection.insert_one(user.to_dict())
@@ -96,7 +96,6 @@ class UserService:
         if not group_id:
             raise Exception("Failed to create the group document.")
 
-        # Set the newly created group as active
         result = self.users_collection.update_one(
             {'_id': user_oid},
             {'$set': {'active_group_id': group_id}}

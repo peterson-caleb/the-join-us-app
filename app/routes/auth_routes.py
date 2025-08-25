@@ -29,7 +29,6 @@ def register():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     
-    # Check for a code in the URL query parameters
     code_from_url = request.args.get('code')
     is_code_valid = registration_code_service.validate_code(code_from_url)
 
@@ -37,19 +36,19 @@ def register():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        # Use the code from the hidden input if it exists, otherwise from the form
+        name = request.form['name'] # Get the new name field
         invitation_code = request.form.get('invitation_code_hidden') or request.form.get('invitation_code')
         
         try:
             if not registration_code_service.validate_code(invitation_code):
                 flash('Invalid or expired invitation code.', 'error')
-                # Pass the invalid code back to the template if it came from URL
                 return render_template('auth/register.html', code_from_url=code_from_url, is_code_valid=False)
             
             user = user_service.create_user(
                 username=username,
                 email=email,
                 password=password,
+                name=name, # Pass the name to the service
                 registration_method='invite_code'
             )
             

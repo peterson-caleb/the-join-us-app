@@ -288,7 +288,8 @@ def rsvp_page(token):
             if group:
                 owner = user_service.get_user(group.owner_id)
                 if owner:
-                    confirmed_guests.insert(0, {'name': owner.username, 'is_host': True})
+                    # Use the owner's full name
+                    confirmed_guests.insert(0, {'name': owner.name, 'is_host': True})
     
     capacity_details = None
     if invitee.get('status') == 'YES':
@@ -332,7 +333,8 @@ def submit_rsvp_api(token):
                 if group:
                     owner = user_service.get_user(group.owner_id)
                     if owner:
-                        confirmed_guests.insert(0, {'name': owner.username, 'is_host': True})
+                        # Use the owner's full name
+                        confirmed_guests.insert(0, {'name': owner.name, 'is_host': True})
             json_response['confirmed_guests'] = confirmed_guests
 
     return jsonify(json_response)
