@@ -80,7 +80,7 @@
   --font-family-heading: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
   /* Font Sizes - Enhanced Typography Scale */
-  --text-xs: 0.75rem;    /* 12px */
+  --text-xs: 0.75rem;     /* 12px */
   --text-sm: 0.875rem;    /* 14px */
   --text-base: 1rem;      /* 16px */
   --text-lg: 1.125rem;    /* 18px */
@@ -921,4 +921,44 @@ p {
 
 .event-card-body {
     flex-grow: 1;
+}
+
+/* ===== NEW PROGRESS BAR V2 STYLES ===== */
+.capacity-progress-v2 {
+    height: 32px;
+    background-color: var(--gray-200);
+    border-radius: 1rem; /* pill-shape */
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+    display: flex;
+    position: relative;
+    cursor: pointer;
+}
+
+.progress-bar-v2 {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: var(--text-sm);
+    font-weight: var(--font-medium);
+    transition: width 0.6s ease-in-out;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.progress-bar-v2-confirmed {
+    background: linear-gradient(90deg, var(--success-400), var(--success-600));
+}
+
+.progress-bar-v2-invited {
+    background: linear-gradient(90deg, var(--primary-400), var(--primary-600));
+}
+
+.popover-header {
+    font-family: var(--font-family-heading);
+    font-weight: var(--font-semibold);
+    background-color: var(--gray-100);
+    border-bottom: 1px solid var(--gray-200);
 }

@@ -1,11 +1,12 @@
 # app/routes/event_routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, g
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, g, Response
 from .. import event_service, contact_service, sms_service, user_service
 from datetime import datetime, timedelta
 from bson import ObjectId
 from flask_login import login_required, current_user
 import pytz
 from functools import wraps
+from ..models.event import Event 
 
 bp = Blueprint('events', __name__)
 
@@ -13,7 +14,6 @@ def require_active_group(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
-        # This check now relies on g.active_group which is set correctly for admins in view mode
         if not g.active_group:
             flash("Please select or create a group to continue.", "info")
             return redirect(url_for('groups.manage'))
@@ -23,11 +23,9 @@ def require_active_group(f):
 @bp.route('/events', methods=['GET', 'POST'])
 @require_active_group
 def manage_events():
-    # Use the group from the global context `g` which is aware of admin view mode
     group_id = g.active_group._id
     
     if request.method == 'POST':
-        # Admin in view mode should be able to create events for the user
         try:
             expiry_hours_str = request.form.get('invitation_expiry_hours')
             event_data = {
@@ -38,7 +36,9 @@ def manage_events():
                 'location': request.form.get('location', ''),
                 'start_time': request.form.get('start_time', ''),
                 'invitation_expiry_hours': float(expiry_hours_str) if expiry_hours_str else None,
-                'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form
+                'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form,
+                'organizer_is_attending': 'organizer_is_attending' in request.form,
+                'show_attendee_list': 'show_attendee_list' in request.form
             }
             event_service.create_event(event_data, group_id)
             flash('Event created successfully!', 'success')
@@ -92,7 +92,9 @@ def edit_event(event_id):
             'location': request.form.get('location', ''),
             'start_time': request.form.get('start_time', ''),
             'invitation_expiry_hours': float(expiry_hours_str) if expiry_hours_str else None,
-            'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form
+            'allow_rsvp_after_expiry': 'allow_rsvp_after_expiry' in request.form,
+            'organizer_is_attending': 'organizer_is_attending' in request.form,
+            'show_attendee_list': 'show_attendee_list' in request.form
         }
         
         event_service.update_event(group_id, event_id, event_data)
@@ -127,8 +129,6 @@ def manual_rsvp(event_id, invitee_id):
 @require_active_group
 def manage_invitees(event_id):
     group_id = g.active_group._id
-    # --- THIS IS THE FIX ---
-    # When an admin is viewing, we need the owner's ID, not the admin's ID.
     owner_id = g.active_group.owner_id
     
     event = event_service.get_event(group_id, event_id)
@@ -249,20 +249,17 @@ def duplicate_event(event_id):
         flash(f'Error duplicating event: {str(e)}', 'error')
         return redirect(url_for('events.manage_events'))
 
-@bp.route('/events/<event_id>/delete', methods=['POST'])
+@bp.route('/events/<event_id>/archive', methods=['POST'])
 @require_active_group
-def delete_event(event_id):
+def archive_event(event_id):
     group_id = g.active_group._id
     try:
-        # We need to ensure the user has permission. The service layer should handle this.
-        # For an admin in view mode, this check might need adjustment if not already handled.
-        # Let's assume event_service.delete_event is secure.
-        if event_service.delete_event(group_id, event_id):
-            flash('Event deleted successfully!', 'success')
+        if event_service.archive_event(group_id, event_id):
+            flash('Event archived successfully!', 'success')
         else:
-            flash('Event not found.', 'error')
+            flash('Event not found or could not be archived.', 'error')
     except Exception as e:
-        flash(f'Error deleting event: {str(e)}', 'error')
+        flash(f'Error archiving event: {str(e)}', 'error')
     return redirect(url_for('events.manage_events'))
 
 # --- Public RSVP URL Routes (Do NOT require login or group) ---
@@ -282,19 +279,96 @@ def rsvp_page(token):
         expiry_datetime_utc = invited_at_utc + timedelta(hours=expiry_hours)
         expiry_datetime_est = expiry_datetime_utc.astimezone(est)
 
-    return render_template("events/rsvp_page.html", event=event, invitee=invitee, token=token, expiry_datetime_est=expiry_datetime_est)
+    confirmed_guests = []
+    if event.show_attendee_list:
+        confirmed_guests = [i['name'] for i in event.invitees if i.get('status') == 'YES']
+    
+    # BUGFIX: Calculate capacity details for initial page load
+    capacity_details = None
+    if invitee.get('status') == 'YES':
+        confirmed_count = sum(1 for i in event.invitees if i.get('status') == 'YES')
+        capacity_details = {
+            'confirmed': confirmed_count,
+            'capacity': event.capacity,
+            'organizer_attending': event.organizer_is_attending
+        }
+
+    return render_template(
+        "events/rsvp_page.html", 
+        event=event, 
+        invitee=invitee, 
+        token=token, 
+        expiry_datetime_est=expiry_datetime_est,
+        confirmed_guests=confirmed_guests,
+        capacity_details=capacity_details # Pass details to template
+    )
 
 @bp.route('/api/rsvp/<token>', methods=['POST'])
 def submit_rsvp_api(token):
     data = request.get_json()
     response = data.get('response')
     
-    success, message = event_service.process_rsvp_from_url(token, response, sms_service)
+    success, message, event = event_service.process_rsvp_from_url(token, response, sms_service)
     
-    return jsonify({'success': success, 'message': message})
+    json_response = {'success': success, 'message': message}
+
+    if success and event and response.upper() == 'YES':
+        confirmed_count = sum(1 for i in event.invitees if i.get('status') == 'YES')
+        json_response['capacity_details'] = {
+            'confirmed': confirmed_count,
+            'capacity': event.capacity,
+            'organizer_attending': event.organizer_is_attending
+        }
+        if event.show_attendee_list:
+            json_response['confirmed_guests'] = [i['name'] for i in event.invitees if i.get('status') == 'YES']
+
+    return jsonify(json_response)
 
 @bp.route('/rsvp/submit/<token>/<response>', methods=['GET'])
 def submit_rsvp(token, response):
-    success, message = event_service.process_rsvp_from_url(token, response, sms_service)
-    event, invitee = event_service.find_event_and_invitee_by_token(token)
-    return render_template("events/rsvp_confirmation.html", success=success, message=message, event=event, invitee=invitee)
+    success, message, event = event_service.process_rsvp_from_url(token, response, sms_service)
+    return render_template("events/rsvp_confirmation.html", success=success, message=message, event=event, invitee=None)
+
+@bp.route('/event/<event_id>/calendar.ics')
+def generate_ics(event_id):
+    event_data = event_service.events_collection.find_one({"_id": ObjectId(event_id)})
+    if not event_data:
+        return "Event not found", 404
+
+    event = Event.from_dict(event_data)
+    
+    now_utc_str = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+    
+    start_time_str = event.start_time or "09:00"
+    try:
+        start_dt_local = datetime.combine(event.date, datetime.strptime(start_time_str, '%H:%M').time())
+    except (ValueError, TypeError):
+        start_dt_local = datetime.now()
+
+    end_dt_local = start_dt_local + timedelta(hours=2)
+
+    start_dt_utc_str = start_dt_local.astimezone(pytz.utc).strftime('%Y%m%dT%H%M%SZ')
+    end_dt_utc_str = end_dt_local.astimezone(pytz.utc).strftime('%Y%m%dT%H%M%SZ')
+
+    ics_content = [
+        "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//JoinUs//RSVP App//EN",
+        "BEGIN:VEVENT",
+        f"UID:{event._id}@joinus.app", f"DTSTAMP:{now_utc_str}",
+        f"DTSTART:{start_dt_utc_str}", f"DTEND:{end_dt_utc_str}",
+        f"SUMMARY:{event.name}",
+    ]
+    if event.details:
+        clean_details = event.details.replace('\r\n', '\\n').replace('\n', '\\n')
+        ics_content.append(f"DESCRIPTION:{clean_details}")
+    if event.location:
+        ics_content.append(f"LOCATION:{event.location}")
+    
+    ics_content.extend(["END:VEVENT", "END:VCALENDAR"])
+    
+    response_body = "\r\n".join(ics_content)
+    
+    return Response(
+        response_body,
+        mimetype="text/calendar",
+        headers={"Content-Disposition": f"attachment;filename={event.name.replace(' ', '_')}.ics"}
+    )

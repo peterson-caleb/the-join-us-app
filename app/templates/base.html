@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Join Us{% endblock %}</title>
 
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@300;400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -16,6 +19,9 @@
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+
+    <!-- NEW: Add the phone number validation library -->
+    <script src="https://unpkg.com/libphonenumber-js@1.11.4/bundle/libphonenumber-js.min.js"></script>
 
     <style>
         :root {
@@ -125,7 +131,7 @@
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 {% for group in user_groups %}
-                                <li><a class="dropdown-item {% if active_group and group._id == active_group._id and not is_admin_view_mode %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
+                                    <li><a class="dropdown-item {% if active_group and group._id == active_group._id and not is_admin_view_mode %}active{% endif %}" href="{{ url_for('groups.switch', group_id=group._id) }}">{{ group.name }}</a></li>
                                 {% endfor %}
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="{{ url_for('groups.manage') }}"><i class="bi bi-gear me-2"></i>Manage Groups</a></li>
