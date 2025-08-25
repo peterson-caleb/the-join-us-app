@@ -1,5 +1,6 @@
 # app/routes/event_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, g, Response
+# BUGFIX: Added group_service to the imports to find the event owner
 from .. import event_service, contact_service, sms_service, user_service, group_service
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -281,7 +282,6 @@ def rsvp_page(token):
 
     confirmed_guests = []
     if event.show_attendee_list:
-        # BUGFIX: Create a list of dictionaries to handle host status
         confirmed_guests = [{'name': i['name'], 'is_host': False} for i in event.invitees if i.get('status') == 'YES']
         if event.organizer_is_attending:
             group = group_service.get_group(event.group_id)
@@ -326,7 +326,6 @@ def submit_rsvp_api(token):
             'organizer_attending': event.organizer_is_attending
         }
         if event.show_attendee_list:
-            # BUGFIX: Also return the host in the dynamic list
             confirmed_guests = [{'name': i['name'], 'is_host': False} for i in event.invitees if i.get('status') == 'YES']
             if event.organizer_is_attending:
                 group = group_service.get_group(event.group_id)
