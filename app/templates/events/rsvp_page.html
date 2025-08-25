@@ -81,10 +81,52 @@
                             <i class="bi bi-x-circle"></i> No, I can't make it
                         </button>
                     </div>
+                    
+                    <div id="post-rsvp-info" class="mt-4">
+                        {# BUGFIX: Render capacity bar on initial load if user is already confirmed #}
+                        {% if capacity_details %}
+                            {% set total_confirmed = capacity_details.confirmed + (1 if capacity_details.organizer_attending else 0) %}
+                            {% set capacity = capacity_details.capacity %}
+                            {% set confirmed_percent = ((total_confirmed / capacity) * 100)|round %}
+                            {% set organizer_text = '(incl. organizer)' if capacity_details.organizer_attending else '' %}
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center mb-3">Event Capacity</h5>
+                                    <div class="d-flex justify-content-between align-items-center small text-muted mb-2">
+                                        <span><strong>{{ total_confirmed }}</strong> confirmed of <strong>{{ capacity }}</strong> spots {{ organizer_text }}</span>
+                                        <span class="fw-bold">{{ confirmed_percent }}% Full</span>
+                                    </div>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ confirmed_percent }}%" aria-valuenow="{{ confirmed_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="text-center mt-3">
+                                        <a href="{{ url_for('events.generate_ics', event_id=event._id) }}" class="btn btn-outline-primary">
+                                            <i class="bi bi-calendar-plus"></i> Add to Calendar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-footer text-muted">
                     <small>Your response is important to us.</small>
                 </div>
+            </div>
+
+            <div id="attendee-list-container">
+                {% if confirmed_guests %}
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Confirmed Attendees</h5>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        {% for guest_name in confirmed_guests %}
+                            <li class="list-group-item">{{ guest_name }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -107,7 +149,10 @@
 document.addEventListener('DOMContentLoaded', function () {
     const rsvpButtons = document.querySelectorAll('#rsvp-buttons button');
     const token = "{{ token }}";
+    const eventId = "{{ event._id }}";
     const statusContainer = document.getElementById('status-container');
+    const postRsvpContainer = document.getElementById('post-rsvp-info');
+    const attendeeListContainer = document.getElementById('attendee-list-container');
     const toastElement = document.getElementById('rsvpToast');
     const toast = new bootstrap.Toast(toastElement);
 
@@ -121,7 +166,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function showToast(title, message, isSuccess) {
         const toastTitle = document.getElementById('toast-title');
         const toastBody = document.getElementById('toast-body');
-        
         toastTitle.textContent = title;
         toastBody.textContent = message;
         
@@ -138,21 +182,68 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateStatusUI(response) {
         let bannerHtml = '';
         if (response === 'YES') {
-            bannerHtml = `
-            <div class="status-banner status-yes">
-                <i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.
-            </div>`;
+            bannerHtml = `<div class="status-banner status-yes"><i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.</div>`;
             document.querySelector('.btn-yes').classList.add('active');
             document.querySelector('.btn-no').classList.remove('active');
         } else if (response === 'NO') {
-            bannerHtml = `
-            <div class="status-banner status-no">
-                <i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.
-            </div>`;
+            bannerHtml = `<div class="status-banner status-no"><i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.</div>`;
             document.querySelector('.btn-no').classList.add('active');
             document.querySelector('.btn-yes').classList.remove('active');
+            postRsvpContainer.innerHTML = ''; 
+            attendeeListContainer.innerHTML = '';
         }
         statusContainer.innerHTML = bannerHtml;
+    }
+
+    function renderCapacityBar(details) {
+        const totalConfirmed = details.confirmed + (details.organizer_attending ? 1 : 0);
+        const capacity = details.capacity;
+        const confirmedPercent = Math.round((totalConfirmed / capacity) * 100);
+        const organizerText = details.organizer_attending ? '(incl. organizer)' : '';
+        
+        const barHtml = `
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title text-center mb-3">Event Capacity</h5>
+                <div class="d-flex justify-content-between align-items-center small text-muted mb-2">
+                    <span><strong>${totalConfirmed}</strong> confirmed of <strong>${capacity}</strong> spots ${organizerText}</span>
+                    <span class="fw-bold">${confirmedPercent}% Full</span>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: ${confirmedPercent}%" aria-valuenow="${confirmedPercent}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/event/${eventId}/calendar.ics" class="btn btn-outline-primary">
+                        <i class="bi bi-calendar-plus"></i> Add to Calendar
+                    </a>
+                </div>
+            </div>
+        </div>
+        `;
+        postRsvpContainer.innerHTML = barHtml;
+    }
+
+    function renderAttendeeList(guests) {
+        if (!guests || guests.length === 0) {
+            attendeeListContainer.innerHTML = '';
+            return;
+        }
+
+        let listItems = '';
+        guests.forEach(guest => {
+            listItems += `<li class="list-group-item">${guest}</li>`;
+        });
+
+        const listHtml = `
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Confirmed Attendees</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+                ${listItems}
+            </ul>
+        </div>`;
+        attendeeListContainer.innerHTML = listHtml;
     }
 
     function setLoadingState(isLoading) {
@@ -162,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 button.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>  Saving...`;
             } else {
                 button.disabled = false;
-                // Restore original text
                 const icon = button.dataset.response === 'YES' ? 'bi-check-circle' : 'bi-x-circle';
                 const text = button.dataset.response === 'YES' ? "Yes, I'll be there!" : "No, I can't make it";
                 button.innerHTML = `<i class="bi ${icon}"></i> ${text}`;
@@ -172,21 +262,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function submitRsvp(response) {
         setLoadingState(true);
-
         try {
             const res = await fetch(`/api/rsvp/${token}`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ response: response }),
             });
-
             const data = await res.json();
 
             if (data.success) {
                 showToast('Success!', data.message, true);
                 updateStatusUI(response);
+                if (data.capacity_details) {
+                    renderCapacityBar(data.capacity_details);
+                }
+                if (data.confirmed_guests) {
+                    renderAttendeeList(data.confirmed_guests);
+                }
             } else {
                 showToast('Error', data.message, false);
             }

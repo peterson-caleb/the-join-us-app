@@ -19,7 +19,6 @@
     .event-actions .btn { font-size: 0.875rem; }
     .capacity-section { background: linear-gradient(135deg, #f1f5f9, #f8fafc); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; }
     .capacity-header { font-size: var(--text-base); font-weight: var(--font-semibold); font-family: var(--font-family-heading); color: var(--gray-700); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-    .capacity-progress { height: 32px; background-color: #e2e8f0; border-radius: 1rem; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06); margin-bottom: 1rem; }
     .capacity-stats { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: #64748b; margin-bottom: 1rem; }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .stat-item { background: white; padding: 1rem; border-radius: 0.5rem; border-left: 3px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; }
@@ -121,9 +120,9 @@
                                     </li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form action="{{ url_for('events.delete_event', event_id=event._id) }}" method="POST" class="dropdown-item-form" onsubmit="return confirm('Delete {{ event.name }}? This cannot be undone.');">
-                                            <button type="submit" class="btn dropdown-item text-danger">
-                                                <i class="bi bi-trash me-2"></i>Delete
+                                        <form action="{{ url_for('events.archive_event', event_id=event._id) }}" method="POST" class="dropdown-item-form" onsubmit="return confirm('Archive {{ event.name }}? It will be hidden from this list but not permanently deleted.');">
+                                            <button type="submit" class="btn dropdown-item text-warning">
+                                                <i class="bi bi-archive me-2"></i>Archive
                                             </button>
                                         </form>
                                     </li>
@@ -135,11 +134,15 @@
 
                 <div class="event-card-body">
                     {% set confirmed = event.invitees|selectattr("status", "equalto", "YES")|list|length %}
+                    {% set organizer_is_attending = 1 if event.get('organizer_is_attending') else 0 %}
+                    {% set total_confirmed = confirmed + organizer_is_attending %}
                     {% set invited = event.invitees|selectattr("status", "equalto", "invited")|list|length %}
                     {% set pending = event.invitees|selectattr("status", "equalto", "pending")|list|length %}
                     {% set declined = event.invitees|selectattr("status", "equalto", "NO")|list|length %}
                     {% set expired = event.invitees|selectattr("status", "equalto", "EXPIRED")|list|length %}
                     {% set error = event.invitees|selectattr("status", "equalto", "ERROR")|list|length %}
+                    {% set capacity = event.capacity %}
+                    {% set total_spots_taken = total_confirmed + invited %}
 
                     <div class="capacity-section">
                         <div class="capacity-header">
@@ -147,31 +150,39 @@
                             Event Capacity
                         </div>
                         <div class="capacity-stats">
-                            <span><strong>{{ confirmed }}</strong> confirmed of <strong>{{ event.capacity }}</strong> spots</span>
-                            <span class="text-primary font-weight-bold">{{ ((confirmed / event.capacity) * 100)|round }}% Full</span>
+                            <span>
+                                <strong>{{ total_confirmed }}</strong> confirmed of <strong>{{ capacity }}</strong> spots
+                                {% if organizer_is_attending %}<small class="text-muted">(incl. you)</small>{% endif %}
+                            </span>
+                            <span class="text-primary font-weight-bold">{{ ((total_confirmed / capacity) * 100)|round }}% Full</span>
                         </div>
-                        <div class="capacity-progress">
-                            {% set confirmed_percent = (confirmed / event.capacity * 100)|round %}
-                            {% set invited_percent = (invited / event.capacity * 100)|round %}
+                        
+                        {% set popover_content %}
+                            <ul class='list-unstyled mb-0'>
+                                <li class='d-flex justify-content-between'><span>Confirmed Guests:</span> <strong>{{ confirmed }}</strong></li>
+                                {% if organizer_is_attending %}<li class='d-flex justify-content-between'><span>Organizer Attending:</span> <strong>1</strong></li>{% endif %}
+                                <li class='d-flex justify-content-between'><span>Pending Invitations:</span> <strong>{{ invited }}</strong></li>
+                                <li class='d-flex justify-content-between border-top mt-1 pt-1'><span>Total Filled:</span> <strong>{{ total_spots_taken }} / {{ capacity }}</strong></li>
+                                <li class='d-flex justify-content-between'><span>Remaining Spots:</span> <strong>{{ capacity - total_spots_taken }}</strong></li>
+                            </ul>
+                        {% endset %}
 
-                            <div class="progress-bar bg-success"
-                                 role="progressbar"
-                                 style="width:{{ confirmed_percent }}%;"
-                                 data-bs-toggle="tooltip"
-                                 title="{{ confirmed }} Confirmed">
-                                {% if confirmed_percent > 15 %}
-                                <small class="text-white font-weight-medium">{{ confirmed }} Confirmed</small>
-                                {% endif %}
+                        <div class="capacity-progress-v2" 
+                             data-bs-toggle="popover" 
+                             data-bs-trigger="hover" 
+                             data-bs-placement="top" 
+                             data-bs-html="true"
+                             title="Capacity Breakdown"
+                             data-bs-content="{{ popover_content|replace('"', "'") }}">
+                            
+                            {% set confirmed_percent = (total_confirmed / capacity * 100)|round %}
+                            {% set invited_percent = (invited / capacity * 100)|round %}
+                            
+                            <div class="progress-bar-v2 progress-bar-v2-confirmed" style="width:{{ confirmed_percent }}%;">
+                                {% if confirmed_percent > 15 %}<small>{{ total_confirmed }} Confirmed</small>{% endif %}
                             </div>
-
-                            <div class="progress-bar bg-primary"
-                                 role="progressbar"
-                                 style="width:{{ invited_percent }}%;"
-                                 data-bs-toggle="tooltip"
-                                 title="{{ invited }} Pending Response">
-                                {% if invited_percent > 15 %}
-                                <small class="text-white font-weight-medium">{{ invited }} Pending</small>
-                                {% endif %}
+                            <div class="progress-bar-v2 progress-bar-v2-invited" style="width:{{ invited_percent }}%;">
+                                {% if invited_percent > 15 %}<small>{{ invited }} Invited</small>{% endif %}
                             </div>
                         </div>
                     </div>
@@ -226,6 +237,12 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Invitation Expiry (Hours)</label><input type="number" class="form-control" name="invitation_expiry_hours" min="1" step="any" placeholder="Default: {{ default_expiry_hours }}"></div>
                     </div>
                     <div class="mb-3"><label class="form-label">Details</label><textarea class="form-control" name="details" rows="2" placeholder="Additional information about the event (optional)"></textarea></div>
+                    <div class="mb-2">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="organizer_is_attending" id="createOrganizerAttending"><label class="form-check-label" for="createOrganizerAttending">I am attending (counts against capacity)</label></div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="show_attendee_list" id="createShowAttendees"><label class="form-check-label" for="createShowAttendees">Show confirmed attendee list on public RSVP page</label></div>
+                    </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="allow_rsvp_after_expiry" id="createAllowRsvpAfterExpiry">
                         <label class="form-check-label" for="createAllowRsvpAfterExpiry">Allow guests to RSVP after their invitation has expired (if capacity is available)</label>
@@ -255,6 +272,12 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Invitation Expiry (Hours)</label><input type="number" class="form-control" name="invitation_expiry_hours" value="{{ event.invitation_expiry_hours or '' }}" min="1" step="any" placeholder="Default: {{ default_expiry_hours }}"></div>
                     </div>
                     <div class="mb-3"><label class="form-label">Details</label><textarea class="form-control" name="details" rows="2" placeholder="Additional information about the event (optional)">{{ event.details or '' }}</textarea></div>
+                    <div class="mb-2">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="organizer_is_attending" id="editOrganizerAttending-{{ event._id }}" {% if event.organizer_is_attending %}checked{% endif %}><label class="form-check-label" for="editOrganizerAttending-{{ event._id }}">I am attending (counts against capacity)</label></div>
+                    </div>
+                    <div class="mb-2">
+                        <div class="form-check"><input class="form-check-input" type="checkbox" name="show_attendee_list" id="editShowAttendees-{{ event._id }}" {% if event.show_attendee_list %}checked{% endif %}><label class="form-check-label" for="editShowAttendees-{{ event._id }}">Show confirmed attendee list on public RSVP page</label></div>
+                    </div>
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="allow_rsvp_after_expiry" id="editAllowRsvpAfterExpiry-{{ event._id }}" {% if event.allow_rsvp_after_expiry %}checked{% endif %}>
                         <label class="form-check-label" for="editAllowRsvpAfterExpiry-{{ event._id }}">Allow guests to RSVP after their invitation has expired (if capacity is available)</label>
@@ -277,6 +300,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
     });
+    
+    // Initialize all popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl)
+    })
 
     // Check if we should auto-open an edit modal after duplication
     const urlParams = new URLSearchParams(window.location.search);
@@ -294,7 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState({}, document.title, newUrl + (newSearch ? '?' + newSearch : ''));
     }
 });
-
 function togglePastEvents(showPast) {
     const url = new URL(window.location);
     if (showPast) {

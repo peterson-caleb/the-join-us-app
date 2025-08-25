@@ -73,13 +73,25 @@ class EventService:
         if not invitee:
             return False, "Invitee not found in this event."
 
+        if new_status == 'YES':
+            current_confirmed = sum(1 for i in event.invitees if i.get('status') == 'YES')
+            organizer_spot = 1 if event.organizer_is_attending else 0
+            guest_capacity = event.capacity - organizer_spot
+            if current_confirmed >= guest_capacity:
+                return False, f"Cannot manually confirm {invitee.get('name')}. The event is already at full capacity for guests."
+
+        # BUGFIX: Only send confirmation if status is changing to YES
+        should_send_confirmation = new_status == 'YES' and invitee.get('status') != 'YES'
+
         success = self.update_invitee_status(event_id, ObjectId(invitee_id), new_status)
         if not success:
             return False, "Failed to update status in the database."
 
-        if new_status == 'YES':
+        if should_send_confirmation:
             sms_service.send_confirmation(invitee, event.to_dict())
             message = f"Successfully confirmed {invitee.get('name')}. A confirmation SMS has been sent to them."
+        elif new_status == 'YES':
+            message = f"Successfully marked {invitee.get('name')} as confirmed."
         else:
             message = f"Successfully marked {invitee.get('name')} as declined."
             
@@ -90,7 +102,10 @@ class EventService:
         self.logger.info("Starting expired invitations check")
         now = self.get_current_time()
         
-        active_events = self.events_collection.find({"automation_status": "active"})
+        active_events = self.events_collection.find({
+            "automation_status": "active",
+            "is_archived": {"$ne": True}
+        })
         
         for event_data in active_events:
             event = Event.from_dict(event_data, self.invitation_expiry_hours)
@@ -111,7 +126,10 @@ class EventService:
 
     def manage_event_capacity(self, sms_service):
         self.logger.info("Starting event capacity management")
-        events = self.events_collection.find({"automation_status": "active"})
+        events = self.events_collection.find({
+            "automation_status": "active",
+            "is_archived": {"$ne": True}
+        })
         for event_data in events:
             try:
                 event = Event.from_dict(event_data)
@@ -124,9 +142,15 @@ class EventService:
                 self.logger.error(f"Error managing capacity for event {event_data.get('_id')}: {str(e)}")
 
     def _calculate_available_spots(self, event):
-        confirmed_count = sum(1 for i in event.invitees if i.get('status') == 'YES')
-        invited_count = sum(1 for i in event.invitees if i.get('status') == 'invited')
-        return event.capacity - (confirmed_count + invited_count)
+        confirmed_guests = sum(1 for i in event.invitees if i.get('status') == 'YES')
+        invited_guests = sum(1 for i in event.invitees if i.get('status') == 'invited')
+        organizer_spot = 1 if event.organizer_is_attending else 0
+        
+        total_spots_committed = confirmed_guests + invited_guests + organizer_spot
+        
+        available_spots = event.capacity - total_spots_committed
+        
+        return max(0, available_spots)
 
     def _get_next_invitees(self, event, limit):
         pending_invitees = [i for i in event.invitees if i.get('status') == 'pending']
@@ -140,27 +164,34 @@ class EventService:
     def process_rsvp_from_url(self, token, response, sms_service):
         event, invitee = self.find_event_and_invitee_by_token(token)
         if not event or not invitee:
-            return False, "This invitation link is invalid."
+            return False, "This invitation link is invalid.", None
 
         response = response.upper()
         if response not in ['YES', 'NO']:
-            return False, "Invalid response provided."
+            return False, "Invalid response provided.", None
 
-        if response == 'YES' and invitee.get('status') != 'YES':
+        # BUGFIX: Check if the user is already confirmed to prevent re-sending SMS
+        is_already_confirmed = invitee.get('status') == 'YES'
+
+        if response == 'YES' and not is_already_confirmed:
             current_confirmed = sum(1 for i in event.invitees if i.get('status') == 'YES')
-            if current_confirmed >= event.capacity:
-                 return False, "Sorry, you cannot change your RSVP to 'YES' as the event is now full."
+            organizer_spot = 1 if event.organizer_is_attending else 0
+            guest_capacity = event.capacity - organizer_spot
+            if current_confirmed >= guest_capacity:
+                 return False, "Sorry, you cannot change your RSVP to 'YES' as the event is now full.", None
 
         if invitee['status'] == 'EXPIRED':
             if not event.allow_rsvp_after_expiry:
-                return False, "Sorry, this invitation has expired and cannot be changed."
+                return False, "Sorry, this invitation has expired and cannot be changed.", None
 
         success = self.update_invitee_status(event._id, invitee['_id'], response)
         
-        if success and response == 'YES':
+        # BUGFIX: Only send confirmation if status is changing to YES
+        if success and response == 'YES' and not is_already_confirmed:
             sms_service.send_confirmation(invitee, event.to_dict())
 
-        return success, f"Thank you! Your response for {event.name} has been updated."
+        updated_event = self.get_event(event.group_id, event._id)
+        return success, f"Thank you! Your response for {updated_event.name} has been updated.", updated_event
 
 
     def update_invitee_status(self, event_id, invitee_id, status):
@@ -171,7 +202,7 @@ class EventService:
         return result.modified_count > 0
 
     def find_event_and_invitee_by_token(self, token):
-        event_data = self.events_collection.find_one({"invitees.rsvp_token": token})
+        event_data = self.events_collection.find_one({"invitees.rsvp_token": token, "is_archived": {"$ne": True}})
         if not event_data: return None, None
         event = Event.from_dict(event_data, self.invitation_expiry_hours)
         invitee = next((i for i in event.invitees if i.get("rsvp_token") == token), None)
@@ -179,11 +210,17 @@ class EventService:
 
     # --- GROUP-AWARE CRUD METHODS ---
     def get_event(self, group_id, event_id):
-        event_data = self.events_collection.find_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
+        event_data = self.events_collection.find_one({
+            "_id": ObjectId(event_id), 
+            "group_id": ObjectId(group_id)
+        })
         return Event.from_dict(event_data, self.invitation_expiry_hours) if event_data else None
 
-    def get_events(self, group_id):
-        return list(self.events_collection.find({"group_id": ObjectId(group_id)}))
+    def get_events(self, group_id, include_archived=False):
+        query = {"group_id": ObjectId(group_id)}
+        if not include_archived:
+            query["is_archived"] = {"$ne": True}
+        return list(self.events_collection.find(query))
 
     def create_event(self, event_data, group_id):
         event_data['group_id'] = group_id
@@ -198,17 +235,14 @@ class EventService:
         )
         return self.get_event(group_id, event_id)
 
-    def delete_event(self, group_id, event_id):
-        result = self.events_collection.delete_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
-        return result.deleted_count > 0
+    def archive_event(self, group_id, event_id):
+        result = self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
+            {"$set": {"is_archived": True}}
+        )
+        return result.modified_count > 0
 
     def delete_events_for_group(self, group_id, owner_id):
-        """
-        Deletes all events associated with a group, but only if the
-        requesting user is the owner of that group.
-        """
-        # First, verify the user owns the group by checking the groups collection.
-        # This is an extra layer of security.
         group = self.db.groups.find_one({'_id': ObjectId(group_id), 'owner_id': ObjectId(owner_id)})
         if not group:
             raise PermissionError("User does not own this group, cannot delete its events.")
@@ -217,9 +251,11 @@ class EventService:
         return result.deleted_count
 
     def add_invitees(self, group_id, event_id, invitees):
-        event = self.get_event(group_id, event_id)
-        if not event:
+        event_data = self.events_collection.find_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
+        if not event_data:
             raise ValueError("Event not found")
+        event = Event.from_dict(event_data, self.invitation_expiry_hours)
+
         current_contact_ids = {str(i.get('contact_id')) for i in event.invitees}
         start_priority = max([i.get('priority', -1) for i in event.invitees] + [-1]) + 1
         
@@ -251,8 +287,11 @@ class EventService:
         )
 
     def reorder_invitees(self, group_id, event_id, invitee_order):
-        event = self.get_event(group_id, event_id)
-        if not event: raise ValueError("Event not found")
+        event_data = self.events_collection.find_one({"_id": ObjectId(event_id), "group_id": ObjectId(group_id)})
+        if not event_data:
+            raise ValueError("Event not found")
+        event = Event.from_dict(event_data, self.invitation_expiry_hours)
+        
         invitees_dict = {str(i['_id']): i for i in event.invitees}
         new_invitees = []
         for i, invitee_id in enumerate(invitee_order):

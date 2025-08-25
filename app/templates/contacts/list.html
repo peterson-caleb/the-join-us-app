@@ -112,11 +112,16 @@
 <div class="modal fade" id="createContactModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form action="{{ url_for('contacts.manage_contacts') }}" method="POST">
+            <form id="createContactForm" action="{{ url_for('contacts.manage_contacts') }}" method="POST">
                 <div class="modal-header"><h5 class="modal-title">Add New Contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" required></div>
-                    <div class="mb-3"><label class="form-label">Phone Number</label><input type="tel" class="form-control" name="phone" required pattern="\+[1-9]\d{1,14}" title="Use E.164 format (e.g., +12223334444)"><small class="form-text text-muted">Format: +12223334444</small></div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" name="phone" required placeholder="(555) 123-4567">
+                        <div class="form-text">Any US format is acceptable.</div>
+                        <div class="invalid-feedback">Please enter a valid US phone number.</div>
+                    </div>
                     <div class="mb-3"><label class="form-label">Tags</label><input type="text" class="form-control" name="tags" placeholder="Enter tags separated by commas"><small class="form-text text-muted">Example: family, friends, work</small></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Add Contact</button></div>
@@ -128,11 +133,16 @@
 <div class="modal fade" id="editContactModal-{{ contact._id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form action="{{ url_for('contacts.edit_contact', contact_id=contact._id) }}" method="POST">
+            <form id="editContactForm-{{ contact._id }}" action="{{ url_for('contacts.edit_contact', contact_id=contact._id) }}" method="POST">
                 <div class="modal-header"><h5 class="modal-title">Edit Contact</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" value="{{ contact.name }}" required></div>
-                    <div class="mb-3"><label class="form-label">Phone</label><input type="tel" class="form-control" name="phone" value="{{ contact.phone }}" required pattern="\+[1-9]\d{1,14}" title="Use E.164 format (e.g., +12223334444)"><small class="form-text text-muted">Format: +12223334444</small></div>
+                    <div class="mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="tel" class="form-control" name="phone" value="{{ contact.phone }}" required>
+                        <div class="form-text">Any US format is acceptable.</div>
+                        <div class="invalid-feedback">Please enter a valid US phone number.</div>
+                    </div>
                     <div class="mb-3"><label class="form-label">Tags</label><input type="text" class="form-control" name="tags" value="{{ contact.tags|join(', ') }}" placeholder="Enter tags separated by commas"><small class="form-text text-muted">Example: family, friends, work</small></div>
                 </div>
                 <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
@@ -169,6 +179,51 @@ $(document).ready(function() {
             e.trigger.classList.remove('btn-success');
         }, 2000);
         e.clearSelection();
+    });
+
+    // --- NEW: Client-side phone number validation ---
+    function validatePhoneNumber(form) {
+        const phoneInput = form.querySelector('input[name="phone"]');
+        const phoneNumber = phoneInput.value;
+        
+        // Reset validation state
+        phoneInput.classList.remove('is-invalid');
+
+        if (!phoneNumber) {
+            return true; // Let the 'required' attribute handle it
+        }
+
+        try {
+            const parsedNumber = new libphonenumber.parsePhoneNumberFromString(phoneNumber, 'US');
+            if (parsedNumber && parsedNumber.isValid() && parsedNumber.country === 'US') {
+                return true; // It's a valid US number
+            } else {
+                phoneInput.classList.add('is-invalid');
+                return false; // Not a valid US number
+            }
+        } catch (e) {
+            phoneInput.classList.add('is-invalid');
+            return false; // Parsing failed
+        }
+    }
+
+    // Attach validation to the "Add Contact" form
+    const createForm = document.getElementById('createContactForm');
+    if (createForm) {
+        createForm.addEventListener('submit', function(event) {
+            if (!validatePhoneNumber(this)) {
+                event.preventDefault();
+            }
+        });
+    }
+
+    // Attach validation to all "Edit Contact" forms
+    document.querySelectorAll('form[id^="editContactForm-"]').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!validatePhoneNumber(this)) {
+                event.preventDefault();
+            }
+        });
     });
 });
 </script>

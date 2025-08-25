@@ -13,7 +13,7 @@
                 <div class="card-body">
                     <p class="card-text">Fill out this form to be added to {{ owner.username }}'s contacts for future event invitations.</p>
                     
-                    <form method="POST">
+                    <form id="publicAddContactForm" method="POST">
                         <div class="mb-3">
                             <label for="name" class="form-label">Your Name</label>
                             <input type="text" class="form-control" id="name" name="name" required>
@@ -21,11 +21,11 @@
                         <div class="mb-3">
                             <label for="phone" class="form-label">Phone Number</label>
                             <input type="tel" class="form-control" id="phone" name="phone" required
-                                   pattern="\+[1-9]\d{1,14}"
-                                   title="Please enter a valid phone number in E.164 format (e.g., +12223334444)">
+                                   placeholder="(555) 123-4567">
                             <div class="form-text">
-                                Please use the international E.164 format (e.g., +12223334444).
+                                Please provide a valid US phone number.
                             </div>
+                            <div class="invalid-feedback">Please enter a valid US phone number.</div>
                         </div>
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">Add Me to Contacts</button>
@@ -36,4 +36,34 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const publicForm = document.getElementById('publicAddContactForm');
+    if (publicForm) {
+        publicForm.addEventListener('submit', function(event) {
+            const phoneInput = this.querySelector('input[name="phone"]');
+            const phoneNumber = phoneInput.value;
+            
+            phoneInput.classList.remove('is-invalid');
+
+            if (!phoneNumber) return; // Let 'required' handle it
+
+            try {
+                const parsedNumber = new libphonenumber.parsePhoneNumberFromString(phoneNumber, 'US');
+                if (!parsedNumber || !parsedNumber.isValid() || parsedNumber.country !== 'US') {
+                    event.preventDefault();
+                    phoneInput.classList.add('is-invalid');
+                }
+            } catch (e) {
+                event.preventDefault();
+                phoneInput.classList.add('is-invalid');
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
