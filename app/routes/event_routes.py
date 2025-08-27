@@ -15,6 +15,7 @@ def require_active_group(f):
     @wraps(f)
     @login_required
     def decorated_function(*args, **kwargs):
+      
         if not g.active_group:
             flash("Please select or create a group to continue.", "info")
             return redirect(url_for('groups.manage'))
@@ -57,6 +58,17 @@ def manage_events():
     
     for event in events:
         event['_id'] = str(event['_id'])
+
+        # Create categorized lists of attendee names for the popover
+        attendee_names_by_status = {
+            'YES': [], 'NO': [], 'invited': [], 'pending': [], 'EXPIRED': [], 'ERROR': []
+        }
+        for i in event.get('invitees', []):
+            status = i.get('status', 'pending')
+            if status in attendee_names_by_status:
+                attendee_names_by_status[status].append(i['name'])
+        event['attendee_names_by_status'] = attendee_names_by_status
+    
         date_val = event.get('date')
         if isinstance(date_val, str):
             try:
@@ -333,7 +345,7 @@ def submit_rsvp_api(token):
                 if group:
                     owner = user_service.get_user(group.owner_id)
                     if owner:
-                        # Use the owner's full name
+                         # Use the owner's full name
                         confirmed_guests.insert(0, {'name': owner.name, 'is_host': True})
             json_response['confirmed_guests'] = confirmed_guests
 

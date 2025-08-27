@@ -8,9 +8,9 @@
     .event-card { transition: all 0.3s ease; border: 1px solid var(--secondary-200); border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); overflow: hidden; background: white; position: relative; }
     .event-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
     .event-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6); }
-    .event-card-header { background: linear-gradient(135deg, #f8fafc, #ffffff); border-bottom: 1px solid #e2e8f0; padding: 1.5rem; } /* Adjusted padding */
-    .event-card-body { padding: 1.5rem; } /* Adjusted padding */
-    .event-card-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; } /* Adjusted padding */
+    .event-card-header { background: linear-gradient(135deg, #f8fafc, #ffffff); border-bottom: 1px solid #e2e8f0; padding: 1.5rem; }
+    .event-card-body { padding: 1.5rem; }
+    .event-card-footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 1rem 1.5rem; }
     .event-title { font-size: 1.25rem; font-weight: 600; color: var(--gray-900); line-height: 1.3; margin-bottom: 0.25rem; font-family: var(--font-family-heading); }
     .event-details-line { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; color: var(--gray-600); font-size: 0.875rem; }
     .event-details-line span { display: inline-flex; align-items: center; }
@@ -61,7 +61,7 @@
         <div class="col-12">
             <div class="d-flex justify-content-end">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="showPastEvents" 
+                    <input class="form-check-input" type="checkbox" id="showPastEvents"
                            {% if show_past %}checked{% endif %}
                            onchange="togglePastEvents(this.checked)">
                     <label class="form-check-label" for="showPastEvents">
@@ -142,8 +142,7 @@
                     {% set expired = event.invitees|selectattr("status", "equalto", "EXPIRED")|list|length %}
                     {% set error = event.invitees|selectattr("status", "equalto", "ERROR")|list|length %}
                     {% set capacity = event.capacity %}
-                    {% set total_spots_taken = total_confirmed + invited %}
-
+                    
                     <div class="capacity-section">
                         <div class="capacity-header">
                             <i class="bi bi-bar-chart"></i>
@@ -157,24 +156,7 @@
                             <span class="text-primary font-weight-bold">{{ ((total_confirmed / capacity) * 100)|round }}% Full</span>
                         </div>
                         
-                        {% set popover_content %}
-                            <ul class='list-unstyled mb-0'>
-                                <li class='d-flex justify-content-between'><span>Confirmed Guests:</span> <strong>{{ confirmed }}</strong></li>
-                                {% if organizer_is_attending %}<li class='d-flex justify-content-between'><span>Organizer Attending:</span> <strong>1</strong></li>{% endif %}
-                                <li class='d-flex justify-content-between'><span>Pending Invitations:</span> <strong>{{ invited }}</strong></li>
-                                <li class='d-flex justify-content-between border-top mt-1 pt-1'><span>Total Filled:</span> <strong>{{ total_spots_taken }} / {{ capacity }}</strong></li>
-                                <li class='d-flex justify-content-between'><span>Remaining Spots:</span> <strong>{{ capacity - total_spots_taken }}</strong></li>
-                            </ul>
-                        {% endset %}
-
-                        <div class="capacity-progress-v2" 
-                             data-bs-toggle="popover" 
-                             data-bs-trigger="hover" 
-                             data-bs-placement="top" 
-                             data-bs-html="true"
-                             title="Capacity Breakdown"
-                             data-bs-content="{{ popover_content|replace('"', "'") }}">
-                            
+                        <div class="capacity-progress-v2">
                             {% set confirmed_percent = (total_confirmed / capacity * 100)|round %}
                             {% set invited_percent = (invited / capacity * 100)|round %}
                             
@@ -188,12 +170,24 @@
                     </div>
 
                     <div class="stats-grid">
-                        <div class="stat-item"><span class="stat-label">Confirmed</span><span class="stat-value text-success">{{ confirmed }}</span></div>
-                        <div class="stat-item"><span class="stat-label">Sent (Awaiting Reply)</span><span class="stat-value text-primary">{{ invited }}</span></div>
-                        <div class="stat-item"><span class="stat-label">In Queue</span><span class="stat-value">{{ pending }}</span></div>
-                        <div class="stat-item"><span class="stat-label">Declined</span><span class="stat-value">{{ declined }}</span></div>
-                        <div class="stat-item"><span class="stat-label">Expired</span><span class="stat-value">{{ expired }}</span></div>
-                        <div class="stat-item"><span class="stat-label">Failed</span><span class="stat-value {% if error > 0 %}danger{% endif %}">{{ error }}</span></div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.YES %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="Confirmed Guests" data-bs-content="{{ event.attendee_names_by_status.YES|join(', ') }}"{% endif %}>
+                            <span class="stat-label">Confirmed</span><span class="stat-value text-success">{{ confirmed }}</span>
+                        </div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.invited %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="Invited Guests" data-bs-content="{{ event.attendee_names_by_status.invited|join(', ') }}"{% endif %}>
+                            <span class="stat-label">Sent (Awaiting Reply)</span><span class="stat-value text-primary">{{ invited }}</span>
+                        </div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.pending %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="In Queue" data-bs-content="{{ event.attendee_names_by_status.pending|join(', ') }}"{% endif %}>
+                            <span class="stat-label">In Queue</span><span class="stat-value">{{ pending }}</span>
+                        </div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.NO %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="Declined Guests" data-bs-content="{{ event.attendee_names_by_status.NO|join(', ') }}"{% endif %}>
+                            <span class="stat-label">Declined</span><span class="stat-value">{{ declined }}</span>
+                        </div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.EXPIRED %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="Expired Invitations" data-bs-content="{{ event.attendee_names_by_status.EXPIRED|join(', ') }}"{% endif %}>
+                            <span class="stat-label">Expired</span><span class="stat-value">{{ expired }}</span>
+                        </div>
+                        <div class="stat-item" {% if event.attendee_names_by_status.ERROR %}data-bs-toggle="popover" data-bs-trigger="hover" data-bs-placement="top" title="Failed Invitations" data-bs-content="{{ event.attendee_names_by_status.ERROR|join(', ') }}"{% endif %}>
+                            <span class="stat-label">Failed</span><span class="stat-value {% if error > 0 %}danger{% endif %}">{{ error }}</span>
+                        </div>
                     </div>
                 </div>
 
@@ -295,19 +289,13 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize all tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-    
-    // Initialize all popovers
+    // This script initializes the popovers
     var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
     var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl)
     })
 
-    // Check if we should auto-open an edit modal after duplication
+    // This script handles the modal pop-up after duplicating an event
     const urlParams = new URLSearchParams(window.location.search);
     const editEventId = urlParams.get('edit_event');
     if (editEventId) {
@@ -323,6 +311,7 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState({}, document.title, newUrl + (newSearch ? '?' + newSearch : ''));
     }
 });
+
 function togglePastEvents(showPast) {
     const url = new URL(window.location);
     if (showPast) {
