@@ -114,10 +114,8 @@
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        {% if invitee.status in ['pending', 'invited'] %}
                                         <li><form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form"><input type="hidden" name="status" value="YES"><button type="submit" class="btn dropdown-item"><i class="bi bi-check-circle me-2"></i>Manually Confirm</button></form></li>
                                         <li><form action="{{ url_for('events.manual_rsvp', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form"><input type="hidden" name="status" value="NO"><button type="submit" class="btn dropdown-item"><i class="bi bi-x-circle me-2"></i>Manually Decline</button></form></li>
-                                        {% endif %}
                                         {% if invitee.status == 'ERROR' %}
                                         <li><form action="{{ url_for('events.retry_invitee', event_id=event._id, invitee_id=invitee._id) }}" method="POST" class="dropdown-item-form"><button type="submit" class="btn dropdown-item"><i class="bi bi-arrow-clockwise me-2"></i>Retry Invitation</button></form></li>
                                         {% endif %}
