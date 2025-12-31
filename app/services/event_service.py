@@ -374,3 +374,45 @@ class EventService:
             )
 
         return new_event_id
+
+    # NEW FEATURE: Message handling methods
+    def add_message_to_event(self, group_id, event_id, message_text, recipient_type, sent_by):
+        """Add a message to the event for display on RSVP page."""
+        message = {
+            "text": message_text,
+            "sent_at": self.get_current_time(),
+            "recipient_type": recipient_type,  # 'confirmed' or 'all'
+            "sent_by": sent_by
+        }
+        
+        result = self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
+            {"$push": {"messages": message}}
+        )
+        return result.modified_count > 0
+
+    def get_visible_messages(self, event, invitee):
+        """
+        Get messages that are visible to this invitee based on their status.
+        - Confirmed attendees (status='YES') see messages sent to 'confirmed' and 'all'
+        - Other invitees only see messages sent to 'all'
+        """
+        messages = event.to_dict().get('messages', [])
+        if not messages:
+            return []
+        
+        invitee_status = invitee.get('status')
+        
+        # Filter messages based on invitee status
+        visible_messages = []
+        for msg in messages:
+            recipient_type = msg.get('recipient_type')
+            if recipient_type == 'all':
+                visible_messages.append(msg)
+            elif recipient_type == 'confirmed' and invitee_status == 'YES':
+                visible_messages.append(msg)
+        
+        # Sort by sent_at in descending order (newest first)
+        visible_messages.sort(key=lambda x: x.get('sent_at', datetime.min), reverse=True)
+        
+        return visible_messages
