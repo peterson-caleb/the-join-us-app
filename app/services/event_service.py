@@ -37,6 +37,56 @@ class EventService:
     def get_current_time(self):
         return datetime.now(self.timezone)
 
+    def duplicate_event(self, group_id, event_id, copy_invitees=False):
+        """
+        Creates a copy of an existing event. 
+        If copy_invitees is True, it clones the invitee list and preserves their priority/order.
+        """
+        source_event = self.get_event(group_id, event_id)
+        if not source_event:
+            return None
+
+        # Prepare base duplication data
+        duplicate_data = {
+            'name': f"COPY - {source_event.name}",
+            'date': source_event.date.strftime('%Y-%m-%d') if hasattr(source_event.date, 'strftime') else source_event.date,
+            'capacity': source_event.capacity,
+            'details': source_event.details or '',
+            'location': source_event.location or '',
+            'start_time': source_event.start_time or '',
+            'invitation_expiry_hours': source_event.invitation_expiry_hours,
+            'allow_rsvp_after_expiry': source_event.allow_rsvp_after_expiry,
+            'organizer_is_attending': source_event.organizer_is_attending,
+            'show_attendee_list': source_event.show_attendee_list,
+            'automation_status': 'paused'
+        }
+
+        # Create the new event first
+        new_event_id = self.create_event(duplicate_data, group_id)
+        
+        # If requested, copy invitees
+        if copy_invitees and source_event.invitees:
+            new_invitees = []
+            for invitee in source_event.invitees:
+                # Clone the invitee but reset status and unique tokens
+                new_invitee = {
+                    "_id": ObjectId(),
+                    "name": invitee['name'],
+                    "phone": invitee['phone'],
+                    "status": "pending", # Always reset to pending for a new event
+                    "priority": invitee.get('priority', 0),
+                    "added_at": self.get_current_time(),
+                    "contact_id": invitee.get('contact_id')
+                }
+                new_invitees_to_add.append(new_invitee)
+            
+            self.events_collection.update_one(
+                {"_id": ObjectId(new_event_id)},
+                {"$set": {"invitees": new_invitees_to_add}}
+            )
+
+        return new_event_id
+
     def _send_invitations(self, event, invitees_to_send, sms_service):
         now = self.get_current_time()
         
@@ -63,16 +113,14 @@ class EventService:
                 {"_id": event._id, "invitees._id": invitee['_id']},
                 {"$set": update_fields}
             )
-            
+        
     def manual_rsvp(self, group_id, event_id, invitee_id, new_status, sms_service):
         event = self.get_event(group_id, event_id)
         if not event:
             return False, "Event not found."
-
         invitee = next((i for i in event.invitees if str(i.get('_id')) == invitee_id), None)
         if not invitee:
             return False, "Invitee not found in this event."
-
         if new_status == 'YES':
             current_confirmed = sum(1 for i in event.invitees if i.get('status') == 'YES')
             organizer_spot = 1 if event.organizer_is_attending else 0
@@ -86,7 +134,6 @@ class EventService:
         success = self.update_invitee_status(event_id, ObjectId(invitee_id), new_status)
         if not success:
             return False, "Failed to update status in the database."
-
         if should_send_confirmation:
             sms_service.send_confirmation(invitee, event.to_dict())
             message = f"Successfully confirmed {invitee.get('name')}. A confirmation SMS has been sent to them."
@@ -94,7 +141,6 @@ class EventService:
             message = f"Successfully marked {invitee.get('name')} as confirmed."
         else:
             message = f"Successfully marked {invitee.get('name')} as declined."
-            
         return True, message
 
     # SCHEDULER METHODS (NOT group-aware, they run system-wide)

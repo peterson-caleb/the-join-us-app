@@ -239,24 +239,16 @@ def retry_invitee(event_id, invitee_id):
 @require_active_group
 def duplicate_event(event_id):
     group_id = g.active_group._id
+    copy_invitees = 'copy_invitees' in request.form
     try:
-        event = event_service.get_event(group_id, event_id)
-        if not event:
+        new_event_id = event_service.duplicate_event(group_id, event_id, copy_invitees=copy_invitees)
+        
+        if new_event_id:
+            flash('Event duplicated successfully!', 'success')
+            return redirect(url_for('events.manage_events') + f'?edit_event={new_event_id}')
+        else:
             flash('Event not found.', 'error')
             return redirect(url_for('events.manage_events'))
-
-        duplicate_data = {
-            'name': f"COPY - {event.name}",
-            'date': event.date.strftime('%Y-%m-%d') if hasattr(event.date, 'strftime') else event.date,
-            'capacity': event.capacity,
-            'details': event.details or '',
-            'automation_status': 'paused'
-        }
-
-        new_event_id = event_service.create_event(duplicate_data, group_id)
-        
-        flash('Event duplicated successfully!', 'success')
-        return redirect(url_for('events.manage_events') + f'?edit_event={new_event_id}')
         
     except Exception as e:
         flash(f'Error duplicating event: {str(e)}', 'error')
