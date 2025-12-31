@@ -133,3 +133,7 @@ class SMSService:
         rsvp_url = f"{self.base_url}/rsvp/{invitee['rsvp_token']}"
         message_body = f"Hi {invitee['name']}, just a friendly reminder to RSVP for {event['name']}. Please respond here: {rsvp_url}"
         return self._send(invitee['phone'], message_body, contact_id=invitee.get('contact_id'), event_id=event.get('_id'), group_id=event.get('group_id'))
+
+    def send_event_message(self, to_number, message_body, contact_id=None, event_id=None, group_id=None):
+        """Send a custom message to an event invitee (used for event messaging feature)."""
+        return self._send(to_number, message_body, contact_id=contact_id, event_id=event_id, group_id=group_id)

@@ -132,7 +132,7 @@
         </div>
 
         <div class="col-lg-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header"><h5 class="mb-0">Add Invitees from Master List</h5></div>
                 <div class="card-body">
                     <form action="{{ url_for('events.add_invitees', event_id=event._id) }}" method="POST">
@@ -155,6 +155,31 @@
                             </select>
                         </div>
                         <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-circle"></i> Add Selected to Event</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- NEW: Send Message Card -->
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0"><i class="bi bi-chat-dots me-2"></i>Send Message to Invitees</h5></div>
+                <div class="card-body">
+                    <form action="{{ url_for('events.send_message', event_id=event._id) }}" method="POST" id="messageForm">
+                        <div class="mb-3">
+                            <label for="recipient_type" class="form-label">Send to:</label>
+                            <select name="recipient_type" id="recipient_type" class="form-select" required>
+                                <option value="confirmed">Confirmed Attendees Only</option>
+                                <option value="all">All Invited Attendees</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="message_text" class="form-label">Message:</label>
+                            <textarea name="message_text" id="message_text" class="form-control" rows="3" maxlength="160" required placeholder="Your message will be prefixed with 'Event Msg: '"></textarea>
+                            <div class="form-text d-flex justify-content-between">
+                                <span>Message will be prefixed with "Event Msg: "</span>
+                                <span id="charCount">0/160 characters</span>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-send me-2"></i>Send Message</button>
                     </form>
                 </div>
             </div>
@@ -263,6 +288,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial button state update on page load
     updateButtonStates();
+
+    // --- Character Counter for Message ---
+    const messageTextarea = document.getElementById('message_text');
+    const charCount = document.getElementById('charCount');
+    
+    messageTextarea.addEventListener('input', function() {
+        const length = this.value.length;
+        charCount.textContent = `${length}/160 characters`;
+        
+        // Optional: Change color when approaching limit
+        if (length > 140) {
+            charCount.classList.add('text-warning');
+        } else {
+            charCount.classList.remove('text-warning');
+        }
+        
+        if (length === 160) {
+            charCount.classList.add('text-danger');
+            charCount.classList.remove('text-warning');
+        } else {
+            charCount.classList.remove('text-danger');
+        }
+    });
 });
 </script>
 {% endblock %}

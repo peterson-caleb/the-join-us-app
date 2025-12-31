@@ -267,6 +267,82 @@ def archive_event(event_id):
         flash(f'Error archiving event: {str(e)}', 'error')
     return redirect(url_for('events.manage_events'))
 
+# NEW FEATURE: Send messages to event invitees
+@bp.route('/events/<event_id>/send_message', methods=['POST'])
+@require_active_group
+def send_message(event_id):
+    group_id = g.active_group._id
+    try:
+        event = event_service.get_event(group_id, event_id)
+        if not event:
+            flash('Event not found.', 'error')
+            return redirect(url_for('events.manage_events'))
+        
+        # Get the message and recipient type from the form
+        message_text = request.form.get('message_text', '').strip()
+        recipient_type = request.form.get('recipient_type', 'confirmed')
+        
+        if not message_text:
+            flash('Message cannot be empty.', 'error')
+            return redirect(url_for('events.manage_invitees', event_id=event_id))
+        
+        if len(message_text) > 160:
+            flash('Message exceeds 160 character limit.', 'error')
+            return redirect(url_for('events.manage_invitees', event_id=event_id))
+        
+        # Prefix the message
+        full_message = f"Event Msg: {message_text}"
+        
+        # Filter invitees based on recipient type
+        if recipient_type == 'confirmed':
+            recipients = [inv for inv in event.invitees if inv.get('status') == 'YES']
+        else:  # 'all'
+            recipients = [inv for inv in event.invitees if inv.get('status') in ['YES', 'invited', 'NO', 'EXPIRED']]
+        
+        if not recipients:
+            flash('No recipients found matching the selected criteria.', 'warning')
+            return redirect(url_for('events.manage_invitees', event_id=event_id))
+        
+        # Send messages
+        success_count = 0
+        failed_count = 0
+        
+        for invitee in recipients:
+            success, error = sms_service.send_event_message(
+                invitee['phone'], 
+                full_message, 
+                contact_id=invitee.get('contact_id'),
+                event_id=event.get('_id'),
+                group_id=event.get('group_id')
+            )
+            if success:
+                success_count += 1
+            else:
+                failed_count += 1
+        
+        # Save the message to the event for display on RSVP page
+        if success_count > 0:
+            event_service.add_message_to_event(
+                group_id, 
+                event_id, 
+                message_text, 
+                recipient_type,
+                current_user.name
+            )
+        
+        # Flash appropriate message
+        if failed_count == 0:
+            flash(f'Message sent successfully to {success_count} recipient(s)!', 'success')
+        elif success_count == 0:
+            flash(f'Failed to send message to all {failed_count} recipient(s).', 'error')
+        else:
+            flash(f'Message sent to {success_count} recipient(s), but failed for {failed_count}.', 'warning')
+            
+    except Exception as e:
+        flash(f'Error sending message: {str(e)}', 'error')
+    
+    return redirect(url_for('events.manage_invitees', event_id=event_id))
+
 # --- Public RSVP URL Routes (Do NOT require login or group) ---
 @bp.route('/rsvp/<token>', methods=['GET'])
 def rsvp_page(token):
@@ -304,6 +380,9 @@ def rsvp_page(token):
             'organizer_attending': event.organizer_is_attending
         }
 
+    # Get messages visible to this invitee
+    visible_messages = event_service.get_visible_messages(event, invitee)
+
     return render_template(
         "events/rsvp_page.html", 
         event=event, 
@@ -311,7 +390,8 @@ def rsvp_page(token):
         token=token, 
         expiry_datetime_est=expiry_datetime_est,
         confirmed_guests=confirmed_guests,
-        capacity_details=capacity_details
+        capacity_details=capacity_details,
+        event_messages=visible_messages
     )
 
 @bp.route('/api/rsvp/<token>', methods=['POST'])

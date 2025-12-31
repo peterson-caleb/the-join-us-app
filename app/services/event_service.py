@@ -37,56 +37,6 @@ class EventService:
     def get_current_time(self):
         return datetime.now(self.timezone)
 
-    def duplicate_event(self, group_id, event_id, copy_invitees=False):
-        """
-        Creates a copy of an existing event. 
-        If copy_invitees is True, it clones the invitee list and preserves their priority/order.
-        """
-        source_event = self.get_event(group_id, event_id)
-        if not source_event:
-            return None
-
-        # Prepare base duplication data
-        duplicate_data = {
-            'name': f"COPY - {source_event.name}",
-            'date': source_event.date.strftime('%Y-%m-%d') if hasattr(source_event.date, 'strftime') else source_event.date,
-            'capacity': source_event.capacity,
-            'details': source_event.details or '',
-            'location': source_event.location or '',
-            'start_time': source_event.start_time or '',
-            'invitation_expiry_hours': source_event.invitation_expiry_hours,
-            'allow_rsvp_after_expiry': source_event.allow_rsvp_after_expiry,
-            'organizer_is_attending': source_event.organizer_is_attending,
-            'show_attendee_list': source_event.show_attendee_list,
-            'automation_status': 'paused'
-        }
-
-        # Create the new event first
-        new_event_id = self.create_event(duplicate_data, group_id)
-        
-        # If requested, copy invitees
-        if copy_invitees and source_event.invitees:
-            new_invitees = []
-            for invitee in source_event.invitees:
-                # Clone the invitee but reset status and unique tokens
-                new_invitee = {
-                    "_id": ObjectId(),
-                    "name": invitee['name'],
-                    "phone": invitee['phone'],
-                    "status": "pending", # Always reset to pending for a new event
-                    "priority": invitee.get('priority', 0),
-                    "added_at": self.get_current_time(),
-                    "contact_id": invitee.get('contact_id')
-                }
-                new_invitees_to_add.append(new_invitee)
-            
-            self.events_collection.update_one(
-                {"_id": ObjectId(new_event_id)},
-                {"$set": {"invitees": new_invitees_to_add}}
-            )
-
-        return new_event_id
-
     def _send_invitations(self, event, invitees_to_send, sms_service):
         now = self.get_current_time()
         
@@ -155,7 +105,6 @@ class EventService:
         
         for event_data in active_events:
             event = Event.from_dict(event_data, self.invitation_expiry_hours)
-            
             expiry_hours = event.invitation_expiry_hours if event.invitation_expiry_hours is not None else self.invitation_expiry_hours
             
             if not expiry_hours or expiry_hours <= 0:
@@ -191,11 +140,8 @@ class EventService:
         confirmed_guests = sum(1 for i in event.invitees if i.get('status') == 'YES')
         invited_guests = sum(1 for i in event.invitees if i.get('status') == 'invited')
         organizer_spot = 1 if event.organizer_is_attending else 0
-        
         total_spots_committed = confirmed_guests + invited_guests + organizer_spot
-        
         available_spots = event.capacity - total_spots_committed
-        
         return max(0, available_spots)
 
     def _get_next_invitees(self, event, limit):
@@ -382,3 +328,91 @@ class EventService:
         )
 
         return success, message
+
+    def duplicate_event(self, group_id, event_id, copy_invitees=False):
+        """Creates a copy of an existing event and optionally clones invitees."""
+        source_event = self.get_event(group_id, event_id)
+        if not source_event:
+            return None
+
+        duplicate_data = {
+            'name': f"COPY - {source_event.name}",
+            'date': source_event.date.strftime('%Y-%m-%d') if hasattr(source_event.date, 'strftime') else source_event.date,
+            'capacity': source_event.capacity,
+            'details': source_event.details or '',
+            'location': source_event.location or '',
+            'start_time': source_event.start_time or '',
+            'invitation_expiry_hours': source_event.invitation_expiry_hours,
+            'allow_rsvp_after_expiry': source_event.allow_rsvp_after_expiry,
+            'organizer_is_attending': source_event.organizer_is_attending,
+            'show_attendee_list': source_event.show_attendee_list,
+            'automation_status': 'paused'
+        }
+
+        # Use the existing create_event logic
+        new_event_id = self.create_event(duplicate_data, group_id)
+        
+        if copy_invitees and source_event.invitees:
+            new_invitees = []
+            # Corrected logic: Use sorted list to maintain original priority/order
+            for invitee in sorted(source_event.invitees, key=lambda x: x.get('priority', 0)):
+                new_invitee = {
+                    "_id": ObjectId(),
+                    "name": invitee['name'],
+                    "phone": invitee['phone'],
+                    "status": "pending", # Reset status so automation can process them for the new event
+                    "priority": invitee.get('priority', 0),
+                    "added_at": self.get_current_time(),
+                    "contact_id": invitee.get('contact_id')
+                }
+                new_invitees.append(new_invitee)
+            
+            # Persist the copied list to the new event document
+            self.events_collection.update_one(
+                {"_id": ObjectId(new_event_id)},
+                {"$set": {"invitees": new_invitees}}
+            )
+
+        return new_event_id
+
+    # NEW FEATURE: Message handling methods
+    def add_message_to_event(self, group_id, event_id, message_text, recipient_type, sent_by):
+        """Add a message to the event for display on RSVP page."""
+        message = {
+            "text": message_text,
+            "sent_at": self.get_current_time(),
+            "recipient_type": recipient_type,  # 'confirmed' or 'all'
+            "sent_by": sent_by
+        }
+        
+        result = self.events_collection.update_one(
+            {"_id": ObjectId(event_id), "group_id": ObjectId(group_id)},
+            {"$push": {"messages": message}}
+        )
+        return result.modified_count > 0
+
+    def get_visible_messages(self, event, invitee):
+        """
+        Get messages that are visible to this invitee based on their status.
+        - Confirmed attendees (status='YES') see messages sent to 'confirmed' and 'all'
+        - Other invitees only see messages sent to 'all'
+        """
+        messages = event.to_dict().get('messages', [])
+        if not messages:
+            return []
+        
+        invitee_status = invitee.get('status')
+        
+        # Filter messages based on invitee status
+        visible_messages = []
+        for msg in messages:
+            recipient_type = msg.get('recipient_type')
+            if recipient_type == 'all':
+                visible_messages.append(msg)
+            elif recipient_type == 'confirmed' and invitee_status == 'YES':
+                visible_messages.append(msg)
+        
+        # Sort by sent_at in descending order (newest first)
+        visible_messages.sort(key=lambda x: x.get('sent_at', datetime.min), reverse=True)
+        
+        return visible_messages

@@ -11,6 +11,36 @@
     .btn-yes:hover { background-color: var(--success-600) !important; border-color: var(--success-600) !important; }
     .btn-no:hover { background-color: var(--danger-600) !important; border-color: var(--danger-600) !important; }
     .toast-container { z-index: 1090; }
+    
+    /* Message styles */
+    .message-card {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-left: 4px solid #0ea5e9;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    .message-text {
+        color: #0c4a6e;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+    .message-meta {
+        font-size: 0.75rem;
+        color: #64748b;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .message-badge {
+        background-color: #0ea5e9;
+        color: white;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
 </style>
 {% endblock %}
 
@@ -73,6 +103,28 @@
                         <div class="mt-2">{{ event.details }}</div>
                     </div>
                     {% endif %}
+
+                    <!-- NEW: Display messages from organizer -->
+                    {% if event_messages %}
+                    <div class="mt-3 text-start">
+                        <h5 class="mb-3"><i class="bi bi-chat-dots-fill me-2"></i>Messages from Organizer</h5>
+                        {% for message in event_messages %}
+                        <div class="message-card">
+                            <div class="message-text">{{ message.text }}</div>
+                            <div class="message-meta">
+                                <span>
+                                    <i class="bi bi-person-fill me-1"></i>{{ message.sent_by }}
+                                    • <i class="bi bi-clock me-1"></i>{{ message.sent_at.strftime('%b %d, %I:%M %p') if message.sent_at else 'Recently' }}
+                                </span>
+                                {% if message.recipient_type == 'confirmed' %}
+                                <span class="message-badge">Confirmed Attendees</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <div id="rsvp-buttons" class="d-grid gap-2 d-sm-flex justify-content-sm-center mt-4">
                         <button class="btn btn-success btn-lg px-4 gap-3 btn-yes {% if invitee.status == 'YES' %}d-none{% endif %}" data-response="YES">
                             <i class="bi bi-check-circle"></i> Yes, I'll be there!
@@ -162,50 +214,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const toastElement = document.getElementById('rsvpToast');
     const toast = new bootstrap.Toast(toastElement);
 
-    document.querySelectorAll('#rsvp-buttons button').forEach(button => {
-        button.addEventListener('click', function () {
-            const response = this.dataset.response;
-            submitRsvp(response);
-        });
-    });
-
-    function showToast(title, message, isSuccess) {
-        const toastTitle = document.getElementById('toast-title');
-        const toastBody = document.getElementById('toast-body');
-        toastTitle.textContent = title;
-        toastBody.textContent = message;
-        
+    function showToast(title, message, success) {
+        document.getElementById('toast-title').innerText = title;
+        document.getElementById('toast-body').innerText = message;
         toastElement.classList.remove('text-bg-success', 'text-bg-danger');
-        if (isSuccess) {
-            toastElement.classList.add('text-bg-success');
-        } else {
-            toastElement.classList.add('text-bg-danger');
-        }
-        
+        toastElement.classList.add(success ? 'text-bg-success' : 'text-bg-danger');
         toast.show();
     }
 
     function updateStatusUI(response) {
-        let bannerHtml = '';
         if (response === 'YES') {
-            bannerHtml = `<div class="status-banner status-yes"><i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.</div>`;
+            statusContainer.innerHTML = `<div class="status-banner status-yes"><i class="bi bi-check-circle-fill"></i> You have confirmed you are attending.</div>`;
             btnYes.classList.add('d-none');
             btnNo.classList.remove('d-none');
         } else if (response === 'NO') {
-            bannerHtml = `<div class="status-banner status-no"><i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.</div>`;
+            statusContainer.innerHTML = `<div class="status-banner status-no"><i class="bi bi-x-circle-fill"></i> You have responded that you are not attending.</div>`;
             btnNo.classList.add('d-none');
             btnYes.classList.remove('d-none');
-            postRsvpContainer.innerHTML = ''; 
-            attendeeListContainer.innerHTML = '';
         }
-        statusContainer.innerHTML = bannerHtml;
     }
 
-    function renderCapacityBar(details) {
-        const totalConfirmed = details.confirmed + (details.organizer_attending ? 1 : 0);
-        const capacity = details.capacity;
+    function renderCapacityBar(capacityDetails) {
+        const { confirmed, capacity, organizer_attending } = capacityDetails;
+        const totalConfirmed = confirmed + (organizer_attending ? 1 : 0);
         const confirmedPercent = Math.round((totalConfirmed / capacity) * 100);
-        const organizerText = details.organizer_attending ? '(incl. organizer)' : '';
+        const organizerText = organizer_attending ? '(incl. organizer)' : '';
         
         const barHtml = `
         <div class="card">
@@ -297,6 +330,9 @@ document.addEventListener('DOMContentLoaded', function () {
             setLoadingState(false);
         }
     }
+
+    if (btnYes) btnYes.addEventListener('click', () => submitRsvp('YES'));
+    if (btnNo) btnNo.addEventListener('click', () => submitRsvp('NO'));
 });
 </script>
 {% endblock %}
