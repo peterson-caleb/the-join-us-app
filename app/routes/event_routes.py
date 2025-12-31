@@ -312,8 +312,8 @@ def send_message(event_id):
                 invitee['phone'], 
                 full_message, 
                 contact_id=invitee.get('contact_id'),
-                event_id=event.get('_id'),
-                group_id=event.get('group_id')
+                event_id=event._id,      # ✅ CORRECT
+                group_id=event.group_id  # ✅ CORRECT
             )
             if success:
                 success_count += 1
