@@ -391,37 +391,37 @@ class EventService:
         )
         return result.modified_count > 0
 
-def get_visible_messages(self, event, invitee):
-    """
-    Get messages that are visible to this invitee based on their status.
-    - Confirmed attendees (status='YES') see messages sent to 'confirmed' and 'all'
-    - Other invitees only see messages sent to 'all'
-    """
-    messages = event.to_dict().get('messages', [])
-    print(f"DEBUG: Found {len(messages)} messages in event")
-    print(f"DEBUG: Messages: {messages}")
-    
-    if not messages:
-        print("DEBUG: No messages, returning empty list")
-        return []
-    
-    invitee_status = invitee.get('status')
-    print(f"DEBUG: Invitee status: {invitee_status}")
-    
-    # Filter messages based on invitee status
-    visible_messages = []
-    for msg in messages:
-        recipient_type = msg.get('recipient_type')
-        print(f"DEBUG: Checking message - recipient_type: {recipient_type}, invitee_status: {invitee_status}")
-        if recipient_type == 'all':
-            print(f"DEBUG: Adding 'all' message")
-            visible_messages.append(msg)
-        elif recipient_type == 'confirmed' and invitee_status == 'YES':
-            print(f"DEBUG: Adding 'confirmed' message")
-            visible_messages.append(msg)
-    
-    # Sort by sent_at in descending order (newest first)
-    visible_messages.sort(key=lambda x: x.get('sent_at', datetime.min), reverse=True)
-    
-    print(f"DEBUG: Returning {len(visible_messages)} visible messages")
-    return visible_messages
+    def get_visible_messages(self, event, invitee):
+        """
+        Get messages that are visible to this invitee based on their status.
+        - Confirmed attendees (status='YES') see messages sent to 'confirmed' and 'all'
+        - Other invitees only see messages sent to 'all'
+        """
+        messages = event.to_dict().get('messages', [])
+        print(f"DEBUG: Found {len(messages)} messages in event")
+        print(f"DEBUG: Messages: {messages}")
+        
+        if not messages:
+            print("DEBUG: No messages, returning empty list")
+            return []
+        
+        invitee_status = invitee.get('status')
+        print(f"DEBUG: Invitee status: {invitee_status}")
+        
+        # Filter messages based on invitee status
+        visible_messages = []
+        for msg in messages:
+            recipient_type = msg.get('recipient_type')
+            print(f"DEBUG: Checking message - recipient_type: {recipient_type}, invitee_status: {invitee_status}")
+            if recipient_type == 'all':
+                print(f"DEBUG: Adding 'all' message")
+                visible_messages.append(msg)
+            elif recipient_type == 'confirmed' and invitee_status == 'YES':
+                print(f"DEBUG: Adding 'confirmed' message")
+                visible_messages.append(msg)
+        
+        # Sort by sent_at in descending order (newest first)
+        visible_messages.sort(key=lambda x: x.get('sent_at', datetime.min), reverse=True)
+        
+        print(f"DEBUG: Returning {len(visible_messages)} visible messages")
+        return visible_messages
