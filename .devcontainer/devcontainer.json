@@ -4,8 +4,10 @@
   "service": "app",
   "workspaceFolder": "/workspaces/rsvp-priority",
   "forwardPorts": [5000],
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+"features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+        "moby": false
+    },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "lts"
     }

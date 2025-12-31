@@ -1,5 +1,5 @@
 # In .devcontainer/Dockerfile
-FROM mcr.microsoft.com/devcontainers/python:3.12
+FROM mcr.microsoft.com/devcontainers/python:3.12-bookworm
 
 WORKDIR /workspaces/rsvp-priority
 
