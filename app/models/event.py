@@ -8,7 +8,7 @@ class Event:
     """
     Event model representing a single event in the RSVP system.
     """
-    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=None, details="", location=None, start_time=None, allow_rsvp_after_expiry=False, organizer_is_attending=False, show_attendee_list=False, is_archived=False):
+    def __init__(self, name, date, capacity, group_id, invitation_expiry_hours=None, details="", location=None, start_time=None, allow_rsvp_after_expiry=False, organizer_is_attending=False, show_attendee_list=False, is_archived=False, messages=None):
         self.name = name
         self.date = date
         self.capacity = capacity
@@ -23,10 +23,10 @@ class Event:
         self.automation_status = 'paused'
         self._id = None
         self.group_id = group_id
-        # --- NEW FIELDS ---
         self.organizer_is_attending = organizer_is_attending
         self.show_attendee_list = show_attendee_list
         self.is_archived = is_archived
+        self.messages = messages or []
 
     def _generate_event_code(self):
         """Generate a unique event code based on event name"""
@@ -62,10 +62,10 @@ class Event:
             start_time=data.get('start_time'),
             allow_rsvp_after_expiry=data.get('allow_rsvp_after_expiry', False),
             group_id=data.get('group_id'),
-            # --- NEW FIELDS ---
             organizer_is_attending=data.get('organizer_is_attending', False),
             show_attendee_list=data.get('show_attendee_list', False),
-            is_archived=data.get('is_archived', False)
+            is_archived=data.get('is_archived', False),
+            messages=data.get('messages', [])
         )
         event.invitees = data.get('invitees', [])
         event.created_at = data.get('created_at', datetime.utcnow())
@@ -93,8 +93,8 @@ class Event:
             "allow_rsvp_after_expiry": self.allow_rsvp_after_expiry,
             "automation_status": self.automation_status,
             "group_id": self.group_id,
-            # --- NEW FIELDS ---
             "organizer_is_attending": self.organizer_is_attending,
             "show_attendee_list": self.show_attendee_list,
-            "is_archived": self.is_archived
+            "is_archived": self.is_archived,
+            "messages": self.messages
         }
