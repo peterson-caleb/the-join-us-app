@@ -131,6 +131,26 @@
             </div>
         </div>
 
+        <!-- Display sent messages -->
+        {% if event.messages %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Sent Messages</h5>
+            </div>
+            <div class="card-body">
+                {% for message in event.messages|reverse %}
+                <div class="alert alert-info">
+                    <div><strong>{{ message.text }}</strong></div>
+                    <small class="text-muted">
+                        Sent to: {{ 'Confirmed Attendees' if message.recipient_type == 'confirmed' else 'All Invited' }}
+                        • {{ message.sent_at.strftime('%b %d at %I:%M %p') if message.sent_at }}
+                    </small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
         <div class="col-lg-4">
             <div class="card mb-3">
                 <div class="card-header"><h5 class="mb-0">Add Invitees from Master List</h5></div>
